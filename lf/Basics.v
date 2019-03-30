@@ -282,17 +282,20 @@ Proof. simpl. reflexivity. Qed.
     model of the [orb] tests above.) The function should return [true]
     if either or both of its inputs are [false]. *)
 
-Definition nandb (b1:bool) (b2:bool) : bool
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition nandb (b1:bool) (b2:bool) : bool :=
+  match b1 with
+  | false => true
+  | true => negb b2
+  end.
 
 Example test_nandb1:               (nandb true false) = true.
-(* FILL IN HERE *) Admitted.
+Proof. simpl. reflexivity. Qed.
 Example test_nandb2:               (nandb false false) = true.
-(* FILL IN HERE *) Admitted.
+Proof. simpl. reflexivity. Qed.
 Example test_nandb3:               (nandb false true) = true.
-(* FILL IN HERE *) Admitted.
+Proof. simpl. reflexivity. Qed.
 Example test_nandb4:               (nandb true true) = false.
-(* FILL IN HERE *) Admitted.
+Proof. simpl. reflexivity. Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard (andb3)  
@@ -301,17 +304,20 @@ Example test_nandb4:               (nandb true true) = false.
     return [true] when all of its inputs are [true], and [false]
     otherwise. *)
 
-Definition andb3 (b1:bool) (b2:bool) (b3:bool) : bool
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition andb3 (b1:bool) (b2:bool) (b3:bool) : bool :=
+  match b1 with
+  | false => false
+  | true => andb b2 b3
+  end.
 
 Example test_andb31:                 (andb3 true true true) = true.
-(* FILL IN HERE *) Admitted.
+Proof. simpl. reflexivity. Qed.
 Example test_andb32:                 (andb3 false true true) = false.
-(* FILL IN HERE *) Admitted.
+Proof. simpl. reflexivity. Qed.
 Example test_andb33:                 (andb3 true false true) = false.
-(* FILL IN HERE *) Admitted.
+Proof. simpl. reflexivity. Qed.
 Example test_andb34:                 (andb3 true true false) = false.
-(* FILL IN HERE *) Admitted.
+Proof. simpl. reflexivity. Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -698,13 +704,16 @@ Fixpoint exp (base power : nat) : nat :=
 
     Translate this into Coq. *)
 
-Fixpoint factorial (n:nat) : nat
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Fixpoint factorial (n:nat) : nat :=
+  match n with
+    | O => S O
+    | S n' => mult n (factorial n')
+  end.
 
 Example test_factorial1:          (factorial 3) = 6.
-(* FILL IN HERE *) Admitted.
+Proof. simpl. reflexivity. Qed.
 Example test_factorial2:          (factorial 5) = (mult 10 12).
-(* FILL IN HERE *) Admitted.
+Proof. simpl. reflexivity. Qed.
 (** [] *)
 
 (** Again, we can make numerical expressions easier to read and write
@@ -791,17 +800,20 @@ Proof. simpl. reflexivity.  Qed.
     function.  (It can be done with just one previously defined
     function, but you can use two if you need to.) *)
 
-Definition ltb (n m : nat) : bool
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition ltb (n m : nat) : bool :=
+  match (leb n m) with
+  | false => false
+  | true => negb (leb m n)
+  end.
 
 Notation "x <? y" := (ltb x y) (at level 70) : nat_scope.
 
 Example test_ltb1:             (ltb 2 2) = false.
-(* FILL IN HERE *) Admitted.
+Proof. simpl. reflexivity. Qed.
 Example test_ltb2:             (ltb 2 4) = true.
-(* FILL IN HERE *) Admitted.
+Proof. simpl. reflexivity. Qed.
 Example test_ltb3:             (ltb 4 2) = false.
-(* FILL IN HERE *) Admitted.
+Proof. simpl. reflexivity. Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -884,17 +896,17 @@ Proof.
 
 Theorem plus_1_l : forall n:nat, 1 + n = S n.
 Proof.
-  intros n. reflexivity.  Qed.
+  intros n. simpl. reflexivity.  Qed.
 
 Theorem mult_0_l : forall n:nat, 0 * n = 0.
 Proof.
-  intros n. reflexivity.  Qed.
+  intros n. simpl. reflexivity.  Qed.
 
 (** The [_l] suffix in the names of these theorems is
     pronounced "on the left." *)
 
 (** It is worth stepping through these proofs to observe how the
-    context and the goal change.  You may want to add calls to [simpl]
+    context and the goal change.(?)  You may want to add calls to [simpl]
     before [reflexivity] to see the simplifications that Coq performs
     on the terms before checking that they are equal. *)
 
@@ -930,7 +942,7 @@ Proof.
   (* move the hypothesis into the context: *)
   intros H.
   (* rewrite the goal using the hypothesis: *)
-  rewrite -> H.
+  rewrite <- H.
   reflexivity.  Qed.
 
 (** The first line of the proof moves the universally quantified
@@ -953,7 +965,12 @@ Proof.
 Theorem plus_id_exercise : forall n m o : nat,
   n = m -> m = o -> n + m = m + o.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n m o.
+  intros H1.
+  intros H2.
+  rewrite -> H1.
+  rewrite <- H2.
+  reflexivity. Qed.
 (** [] *)
 
 (** The [Admitted] command tells Coq that we want to skip trying
@@ -985,7 +1002,11 @@ Theorem mult_S_1 : forall n m : nat,
   m = S n ->
   m * (1 + n) = m * m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n m.
+  intros H.
+  rewrite -> plus_1_l.
+  rewrite <- H.
+  reflexivity. Qed.
 
   (* (N.b. This proof can actually be completed with tactics other than
      [rewrite], but please do use [rewrite] for the sake of the exercise.) 
@@ -1047,7 +1068,7 @@ Proof.
     In each subgoal, Coq remembers the assumption about [n] that is
     relevant for this subgoal -- either [n = 0] or [n = S n'] for some
     n'.  The [eqn:E] annotation tells [destruct] to give the name [E] to
-    this equation.  (Leaving off the [eqn:E] annotation causes Coq to
+    this equation.(?) (Leaving off the [eqn:E] annotation causes Coq to
     elide these assumptions in the subgoals.  This slightly
     streamlines proofs where the assumptions are not explicitly used,
     but it is better practice to keep them for the sake of
@@ -1064,7 +1085,7 @@ Proof.
     + 1)] to [S (n' + 1)], then unfolding [eqb], and then simplifying
     the [match].
 
-    Marking cases with bullets is entirely optional: if bullets are
+    Marking cases with bullets is entirely optional(!): if bullets are
     not present, Coq simply asks you to prove each subgoal in
     sequence, one at a time. But it is a good idea to use bullets.
     For one thing, they make the structure of a proof apparent, making
@@ -1106,7 +1127,7 @@ Proof.
     none of the subcases of the [destruct] need to bind any variables,
     so there is no need to specify any names.  (We could also have
     written [as [|]], or [as []].)  In fact, we can omit the [as]
-    clause from _any_ [destruct] and Coq will fill in variable names
+    clause from _any_ [destruct](!) and Coq will fill in variable names
     automatically.  This is generally considered bad style, since Coq
     often makes confusing choices of names when left to its own
     devices.
@@ -1213,14 +1234,29 @@ Qed.
 Theorem andb_true_elim2 : forall b c : bool,
   andb b c = true -> c = true.
 Proof.
-  (* FILL IN HERE *) Admitted.
+(*  intros b c.
+  destruct b eqn:Eb.
+  - simpl. intros E. rewrite -> E. reflexivity.
+  - simpl. intros E. destruct c eqn:Ec.
+    + reflexivity.
+    + rewrite -> E. reflexivity.
+Qed.*)
+  intros [] [].
+  - reflexivity.
+  - simpl. intros E. rewrite E. reflexivity.
+  - reflexivity.
+  - simpl. intros E. rewrite E. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard (zero_nbeq_plus_1)  *)
 Theorem zero_nbeq_plus_1 : forall n : nat,
   0 =? (n + 1) = false.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros [|n].
+  - reflexivity.
+  - reflexivity.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -1305,8 +1341,18 @@ Fixpoint plus' (n : nat) (m : nat) : nat :=
     out your solution so that it doesn't cause Coq to reject the whole
     file!) *)
 
-(* FILL IN HERE 
+(* (?)
+Fixpoint fixtest (n : nat) : bool :=
+  match (evenb n) with
+  | true => true
+  | false => fixtest (S n)
+  end.
 
+Fixpoint alternate (l1 l2 : natlist) : natlist :=
+  match l1 with
+  | nil => l2
+  | h :: t => h :: (alternate l2 l1)
+  end.
     [] *)
 
 (* ################################################################# *)
@@ -1327,7 +1373,13 @@ Theorem identity_fn_applied_twice :
   (forall (x : bool), f x = x) ->
   forall (b : bool), f (f b) = b.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros f.
+  intros H.
+  intros b.
+  rewrite H.
+  rewrite H.
+  reflexivity.
+Qed.
 
 (** [] *)
 
@@ -1337,7 +1389,21 @@ Proof.
     to the previous one but where the second hypothesis says that the
     function [f] has the property that [f x = negb x]. *)
 
-(* FILL IN HERE *)
+Theorem negation_fn_applied_twice :
+  forall (f : bool -> bool),
+  (forall (x : bool), f x = negb x) ->
+  forall (b : bool), f (f b) = b.
+Proof.
+  intros f.
+  intros H.
+  intros b.
+  rewrite H.
+  rewrite H.
+  destruct b eqn:E.
+  - reflexivity.
+  - reflexivity.
+Qed.
+
 (* The [Import] statement on the next line tells Coq to use the
    standard library String module.  We'll use strings more in later
    chapters, but for the moment we just need syntax for literal
@@ -1360,7 +1426,11 @@ Theorem andb_eq_orb :
   (andb b c = orb b c) ->
   b = c.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros b c.
+  destruct b eqn:Eb.
+  - simpl. intros H. rewrite H. reflexivity.
+  - simpl. intros H. rewrite H. reflexivity.
+Qed.
 
 (** [] *)
 
@@ -1399,11 +1469,36 @@ Inductive bin : Type :=
         for binary numbers, and a function [bin_to_nat] to convert
         binary numbers to unary numbers. *)
 
-Fixpoint incr (m:bin) : bin
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Fixpoint incr (m:bin) : bin :=
+  match m with
+  | Z => B Z
+  | A m' => B m'
+  | B m' => A (incr m')
+  end.
 
-Fixpoint bin_to_nat (m:bin) : nat
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+(*
+Fixpoint nat_to_bin(n:nat) : bin :=
+  match n with
+  | O => Z
+  | S n' => incr (nat_to_bin n')
+  end.
+
+Fixpoint dscr (m:bin) : bin :=
+  match m with
+  | Z => Z
+  | B Z => Z
+  | B m' => A m'
+  | A m' => B (dscr m')
+  end.
+*)
+
+Fixpoint bin_to_nat (m:bin) : nat :=
+  match m with
+  | Z => 0
+  | B Z => 1
+  | B m' => 1 + 2 * (bin_to_nat m')
+  | A m' => 2 * (bin_to_nat m')
+  end.
 
 (**    (b) Write five unit tests [test_bin_incr1], [test_bin_incr2], etc.
         for your increment and binary-to-unary functions.  (A "unit
@@ -1413,7 +1508,21 @@ Fixpoint bin_to_nat (m:bin) : nat
         then converting it to unary should yield the same result as
         first converting it to unary and then incrementing. *)
 
-(* FILL IN HERE *)
+Example test_bin_incr1: incr (B Z) = A (B Z).
+Proof. reflexivity. Qed.
+
+Example test_bin_incr2: incr (A (B Z)) = B (B Z).
+Proof. reflexivity. Qed.
+
+(* non-normalize *)
+Example test_bin_incr3: bin_to_nat (B (B (A (A Z)))) = 3.
+Proof. simpl. reflexivity. Qed.
+
+Example test_bin_incr4: bin_to_nat (A (A (A (B Z)))) = 8.
+Proof. simpl. reflexivity. Qed.
+
+Example test_bin_incr5: bin_to_nat (incr Z) = (bin_to_nat Z) + 1.
+Proof. simpl. reflexivity. Qed.
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_binary : option (nat*string) := None.
