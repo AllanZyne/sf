@@ -505,9 +505,14 @@ Proof. simpl. reflexivity. Qed.
 
 Theorem bag_theorem : forall v s, count v (add v s) = S (count v s).
 Proof.
-  
+  destruct s as [| s'].
+  - simpl.
+    rewrite <- eqb_refl.
+    reflexivity.
+  - simpl.
+    rewrite <- eqb_refl.
+    reflexivity.
 Qed.
-
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_bag_theorem : option (nat*string) := None.
@@ -835,17 +840,28 @@ Proof.
 Theorem app_nil_r : forall l : natlist,
   l ++ [] = l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction l as [| n l' IHl'].
+  - reflexivity.
+  - simpl. rewrite -> IHl'. reflexivity. Qed.
 
 Theorem rev_app_distr: forall l1 l2 : natlist,
   rev (l1 ++ l2) = rev l2 ++ rev l1.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros l1 l2.
+  induction l1 as [| n l1' IHl'].
+  - simpl. rewrite -> app_nil_r. reflexivity.
+  - simpl. rewrite -> IHl', app_assoc. reflexivity.
+Qed.
 
 Theorem rev_involutive : forall l : natlist,
   rev (rev l) = l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction l as [| n l' IHl'].
+  - simpl. reflexivity.
+  - simpl.
+    rewrite -> rev_app_distr, IHl'.
+    reflexivity.
+Qed.
 
 (** There is a short solution to the next one.  If you find yourself
     getting tangled up, step back and try to look for a simpler
@@ -854,14 +870,23 @@ Proof.
 Theorem app_assoc4 : forall l1 l2 l3 l4 : natlist,
   l1 ++ (l2 ++ (l3 ++ l4)) = ((l1 ++ l2) ++ l3) ++ l4.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros l1 l2 l3 l4.
+  rewrite app_assoc, app_assoc.
+  reflexivity.
+Qed.
 
 (** An exercise about your implementation of [nonzeros]: *)
 
 Lemma nonzeros_app : forall l1 l2 : natlist,
   nonzeros (l1 ++ l2) = (nonzeros l1) ++ (nonzeros l2).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros l1 l2.
+  induction l1 as [| n l1' IHl1'].
+  - simpl. reflexivity.
+  - simpl. induction n as [| n' IHn'].
+    + simpl. rewrite IHl1'. reflexivity.
+    + simpl. rewrite IHl1'. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (eqblist)  
@@ -870,25 +895,48 @@ Proof.
     lists of numbers for equality.  Prove that [eqblist l l]
     yields [true] for every list [l]. *)
 
-Fixpoint eqblist (l1 l2 : natlist) : bool
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Fixpoint eqblist (l1 l2 : natlist) : bool :=
+(*   match l1, l2 with
+  | nil, nil    => true
+  | nil, n :: _ => false
+  | n :: _, nil => false
+  | n1 :: l1', n2 :: l2' => if n1 =? n2 then eqblist l1 l2
+                            else false
+  end. *)
+  match l1 with
+  | nil => match l2 with
+           | nil => true
+           | _   => false
+           end
+  | n1 :: l1' => match l2 with
+                 | nil => false
+                 | n2 :: l2'  => if n1 =? n2 then eqblist l1' l2'
+                                 else false
+                 end
+  end.
 
 Example test_eqblist1 :
   (eqblist nil nil = true).
- (* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 
 Example test_eqblist2 :
   eqblist [1;2;3] [1;2;3] = true.
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 
 Example test_eqblist3 :
   eqblist [1;2;3] [1;2;4] = false.
- (* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 
 Theorem eqblist_refl : forall l:natlist,
   true = eqblist l l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros l.
+  induction l as [| n l' IHl'].
+  - reflexivity.
+  - simpl.
+    rewrite <- eqb_refl, IHl'.
+    reflexivity.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
