@@ -906,7 +906,7 @@ Proof.
     pronounced "on the left." *)
 
 (** It is worth stepping through these proofs to observe how the
-    context and the goal change.(?)  You may want to add calls to [simpl]
+    context and the goal change. You may want to add calls to [simpl]
     before [reflexivity] to see the simplifications that Coq performs
     on the terms before checking that they are equal. *)
 
@@ -1068,7 +1068,7 @@ Proof.
     In each subgoal, Coq remembers the assumption about [n] that is
     relevant for this subgoal -- either [n = 0] or [n = S n'] for some
     n'.  The [eqn:E] annotation tells [destruct] to give the name [E] to
-    this equation.(?) (Leaving off the [eqn:E] annotation causes Coq to
+    this equation. (Leaving off the [eqn:E] annotation causes Coq to
     elide these assumptions in the subgoals.  This slightly
     streamlines proofs where the assumptions are not explicitly used,
     but it is better practice to keep them for the sake of
