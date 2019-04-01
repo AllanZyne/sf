@@ -823,8 +823,14 @@ Theorem nor_nat_bin_nat :
 Proof.
    induction n as [| n' IHn'| n' IHn'].
    - reflexivity.
-   - 
-Abort.
+   - simpl.
+     rewrite <- plus_n_O.
+     induction n' as [| m IHm | m IHm].
+     + simpl. reflexivity.
+     + simpl.
+       rewrite <- plus_n_O.
+       
+Abort. (*(?)*)
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_binary_inverse_c : option (nat*string) := None.
