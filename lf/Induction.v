@@ -818,19 +818,24 @@ Proof. reflexivity. Qed.
 Example test_normalize2: normalize (B (B (A (A Z)))) = B (B Z).
 Proof. simpl. reflexivity. Qed.
 
+Lemma nor_nat_bin_nat1 :
+  forall n, bin_to_nat n = 0 -> normalize n = Z.
+Proof.
+  intros n H.
+  induction n as [| a IHa | b IHb].
+  - reflexivity.
+  - rewrite H.
+    
+
 Theorem nor_nat_bin_nat : 
   forall n, normalize n = nat_to_bin (bin_to_nat n).
 Proof.
-   induction n as [| n' IHn'| n' IHn'].
-   - reflexivity.
-   - simpl.
-     rewrite <- plus_n_O.
-     induction n' as [| m IHm | m IHm].
-     + simpl. reflexivity.
-     + simpl.
-       rewrite <- plus_n_O.
-       
+  intros n.
+  destruct (bin_to_nat n) as [] eqn:Hbn.
+  - 
 Abort. (*(?)*)
+
+
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_binary_inverse_c : option (nat*string) := None.
