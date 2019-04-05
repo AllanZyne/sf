@@ -358,7 +358,7 @@ Proof.
   assert (H: n + m = m + n).
   { rewrite -> plus_comm. reflexivity. }
   rewrite -> H. reflexivity.  Qed.
-
+j
 (* ################################################################# *)
 (** * Formal vs. Informal Proof *)
 
@@ -821,11 +821,13 @@ Proof. simpl. reflexivity. Qed.
 Lemma nor_nat_bin_nat1 :
   forall n, bin_to_nat n = 0 -> normalize n = Z.
 Proof.
-  intros n H.
+  intros n.
   induction n as [| a IHa | b IHb].
   - reflexivity.
-  - rewrite H.
-    
+  - intros H. simpl. rewrite IHa.
+    + reflexivity.
+    +  
+Abort.
 
 Theorem nor_nat_bin_nat : 
   forall n, normalize n = nat_to_bin (bin_to_nat n).

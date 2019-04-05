@@ -222,7 +222,7 @@ Check repeat.
     place of any type argument we can write a "hole" [_], which can be
     read as "Please try to figure out for yourself what belongs here."
     More precisely, when Coq encounters a [_], it will attempt to
-    _unify_ all locally available information -- the type of the
+    _unify_ all locally available information(!) -- the type of the
     function being applied, the types of the other arguments, and the
     type expected by the context in which the application appears --
     to determine what concrete type should replace the [_].
@@ -372,9 +372,10 @@ Fail Definition mynil := nil.
 
 Definition mynil : list nat := nil.
 
-(** Alternatively, we can force the implicit arguments to be explicit by
+(** Alternatively, (!)we can force the implicit arguments to be explicit by
    prefixing the function name with [@]. *)
 
+Check nil.
 Check @nil.
 
 Definition mynil' := @nil nat.
@@ -406,17 +407,29 @@ Definition list123''' := [1; 2; 3].
 Theorem app_nil_r : forall (X:Type), forall l:list X,
   l ++ [] = l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros X l.
+  induction l as [| h t IHl].
+  - reflexivity.
+  - simpl. rewrite IHl. reflexivity.
+Qed.
 
 Theorem app_assoc : forall A (l m n:list A),
   l ++ m ++ n = (l ++ m) ++ n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros A l m n.
+  induction l as [| h t IHl].
+  - reflexivity.
+  - simpl. rewrite IHl. reflexivity.
+Qed.
 
 Lemma app_length : forall (X:Type) (l1 l2 : list X),
   length (l1 ++ l2) = length l1 + length l2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros X l1 l2.
+  induction l1 as [| h t IHl].
+  - simpl. reflexivity.
+  - simpl. rewrite IHl. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (more_poly_exercises)  
@@ -426,12 +439,23 @@ Proof.
 Theorem rev_app_distr: forall X (l1 l2 : list X),
   rev (l1 ++ l2) = rev l2 ++ rev l1.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros X l1 l2.
+  induction l1 as [| h l1' IHl1'].
+  - simpl. rewrite -> app_nil_r. reflexivity.
+  - simpl. rewrite -> IHl1', app_assoc. reflexivity.
+Qed.
 
 Theorem rev_involutive : forall X : Type, forall l : list X,
   rev (rev l) = l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros X l.
+  induction l as [| n l' IHl'].
+  - reflexivity.
+  - simpl. 
+    rewrite -> rev_app_distr, IHl'. 
+    simpl. 
+    reflexivity.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -504,6 +528,16 @@ Fixpoint combine {X Y : Type} (lx : list X) (ly : list Y)
       print? 
 
     [] *)
+
+(* forall X:Type Y:Type lx:list X ly:list Y,
+          list X -> list Y -> list (prod X Y)
+*)
+Check @combine. 
+(* => forall X Y : Type, list X -> list Y -> list (X * Y) *)
+
+(* [(1, false), (2, false)] *)
+Compute (combine [1;2] [false;false;true;true]).
+(* => [(1, false); (2, false)] : list (nat * bool) *)
 
 (** **** Exercise: 2 stars, standard, recommended (split)  
 
