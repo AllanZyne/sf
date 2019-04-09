@@ -1235,11 +1235,7 @@ Proof. reflexivity. Qed.
 
 Check (mult one).
 
-Definition exp (n m : cnat) : cnat (*:=
-   fun (X : Type) (f : X -> X) (x : X) => 
-    m _ (fun m:(X->X)->X->X => m (n X f) x) n f x.
- *)
-.
+Definition exp (n m : cnat) : cnat. Admitted.
 
 Example exp_1 : exp two two = plus two two.
 Proof. (* FILL IN HERE *) Admitted.
