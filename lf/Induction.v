@@ -358,7 +358,7 @@ Proof.
   assert (H: n + m = m + n).
   { rewrite -> plus_comm. reflexivity. }
   rewrite -> H. reflexivity.  Qed.
-j
+
 (* ################################################################# *)
 (** * Formal vs. Informal Proof *)
 
