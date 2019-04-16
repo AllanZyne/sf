@@ -74,7 +74,9 @@ Theorem silly_ex :
      oddb 3 = true ->
      evenb 4 = true.
 Proof.
-  
+  intros H1 H2.
+  apply H2. (* (?) *)
+Qed.
 (** [] *)
 
 (** To use the [apply] tactic, the (conclusion of the) fact
@@ -107,7 +109,11 @@ Theorem rev_exercise1 : forall (l l' : list nat),
      l = rev l' ->
      l' = rev l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros l l' H.
+  rewrite H.
+  symmetry.
+  apply rev_involutive.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (apply_rewrite)  
@@ -176,7 +182,9 @@ Example trans_eq_exercise : forall (n m o p : nat),
      (n + p) = m ->
      (n + p) = (minustwo o).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n m o p eq1 eq2.
+  apply trans_eq with (m).
+  apply eq2. apply eq1.   Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -253,7 +261,7 @@ Theorem injection_ex1 : forall (n m o : nat),
 Proof.
   intros n m o H.
   injection H. intros H1 H2.
-  rewrite H1. rewrite H2. reflexivity.
+  rewrite H1. rewrite H2. (*(?)apply H2.*) reflexivity.
 Qed.
 
 (** The "[as]" variant of [injection] permits us to choose names for
@@ -273,7 +281,11 @@ Example injection_ex3 : forall (X : Type) (x y z : X) (l j : list X),
   y :: l = x :: j ->
   x = y.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros X x y z l j H1 H2.
+  injection H2 as Hyx Hlj.
+  symmetry.
+  apply Hyx.
+Qed.
 (** [] *)
 
 (** So much for injectivity of constructors.  What about disjointness?
@@ -345,7 +357,9 @@ Example discriminate_ex3 :
     x :: y :: l = [] ->
     x = z.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros X x y z l j contra.
+  discriminate contra.
+Qed.
 (** [] *)
 
 (** The injectivity of constructors allows us to reason that
@@ -419,8 +433,22 @@ Theorem plus_n_n_injective : forall n m,
      n + n = m + m ->
      n = m.
 Proof.
-  intros n. induction n as [| n'].
-  (* FILL IN HERE *) Admitted.
+  intros n. induction n as [| n' IHn'].
+  - destruct m as [| m'] eqn:Hm.
+    + reflexivity.
+    + intros H.
+      discriminate H.
+  - destruct m as [| m'] eqn:Hm.
+    + intros contra.
+      discriminate contra.
+    + intros H.
+      simpl in H.
+      rewrite <- plus_n_Sm in H.
+      rewrite <- plus_n_Sm in H.
+      injection H as Hm'n'.
+      apply IHn' in Hm'n'.
+      rewrite Hm'n'. reflexivity.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -457,7 +485,7 @@ Proof.
     + (* m = S m' *) discriminate eq.
   - (* n = S n' *) intros eq. destruct m as [| m'] eqn:E.
     + (* m = O *) discriminate eq.
-    + (* m = S m' *) apply f_equal.
+    + (* m = S m' *) apply f_equal. (* (!)S : nat -> nat *)
 
 (** At this point, the induction hypothesis, [IHn'], does _not_ give us
     [n' = m'] -- there is an extra [S] in the way -- so the goal is
@@ -577,7 +605,19 @@ Proof.
 Theorem eqb_true : forall n m,
     n =? m = true -> n = m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n.
+  induction n as [| n' IHn'].
+  - destruct m as [| m'] eqn:Hm.
+    + reflexivity.
+    + discriminate.
+  - intros m H. 
+    destruct m as [| m'] eqn:Hm.
+    + discriminate.
+    + apply f_equal.
+      apply IHn'.
+      simpl in H.
+      apply H.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, advanced (eqb_true_informal)  
@@ -585,7 +625,31 @@ Proof.
     Give a careful informal proof of [eqb_true], being as explicit
     as possible about quantifiers. *)
 
-(* FILL IN HERE *)
+(* 
+
+_Proof_: Let [n] be a nat. We proof by induction on [n] that, for any n, if
+[n =? m = true] then [n = m].
+
+- First, suppose [n = 0], and suppose [m] is a number such that [n =? m = true].
+  We must show that [m = 0].
+
+  There are two cases to consider for [m]. If [m = 0] we are done, since 
+  [0 =? 0 = true] as requried. Otherwise, if [m = S m'],  since [0 =? S m' = true] 
+  is not satisfied, by the principle of explosion [m = 0].
+
+- Second, suppose [n = S n'] and that [m] is again a number such that 
+  [n =? m = true]. We must show that [m = S n'], with the induction hypothesis
+  that for every number [s], if [n' =? s = true] then [n' = s].
+
+  If [m = 0], then [S n' =? 0 = true] is false, and [m = S n'] is satisfied.
+
+  If [m = S m'], then by defination of [=?], [S n' =? S m' = true] could be
+  simplified to [n' =? m' = true], Instantiating the induction hypothesis with 
+  [m'] thus allows us to conclude that [n' = m'], and it follows immediately
+  that [S n' = S m']. Since [n = S n'] and [m = S m'], this is just what we
+  wanted to show.
+
+ *)
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_informal_proof : option (nat*string) := None.
