@@ -630,24 +630,18 @@ Qed.
 _Proof_: Let [n] be a nat. We proof by induction on [n] that, for any n, if
 [n =? m = true] then [n = m].
 
-- First, suppose [n = 0], and suppose [m] is a number such that [n =? m = true].
-  We must show that [m = 0].
+- First, suppose [n = 0], and
 
-  There are two cases to consider for [m]. If [m = 0] we are done, since 
-  [0 =? 0 = true] as requried. Otherwise, if [m = S m'],  since [0 =? S m' = true] 
-  is not satisfied, by the principle of explosion [m = 0].
+if n = 0, then
+  0 =? m = true -> 0 = m.
 
-- Second, suppose [n = S n'] and that [m] is again a number such that 
-  [n =? m = true]. We must show that [m = S n'], with the induction hypothesis
-  that for every number [s], if [n' =? s = true] then [n' = s].
+if for all m that (n =? m) = true -> n = m,
+proof
+  (S n =? m) = true -> S n = m
 
-  If [m = 0], then [S n' =? 0 = true] is false, and [m = S n'] is satisfied.
-
-  If [m = S m'], then by defination of [=?], [S n' =? S m' = true] could be
-  simplified to [n' =? m' = true], Instantiating the induction hypothesis with 
-  [m'] thus allows us to conclude that [n' = m'], and it follows immediately
-  that [S n' = S m']. Since [n = S n'] and [m = S m'], this is just what we
-  wanted to show.
+S n =? 0 => true
+S n =? S m = true -> S n = S m
+n =? m = true
 
  *)
 
@@ -771,7 +765,7 @@ Theorem nth_error_after_last: forall (n : nat) (X : Type) (l : list X),
      length l = n ->
      nth_error l n = None.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  Admitted.
 (** [] *)
 
 (* ################################################################# *)
@@ -807,7 +801,7 @@ Proof.
 
   rewrite mult_assoc.
   assert (H : n * m * n = n * n * m).
-    { rewrite mult_comm. apply mult_assoc. }
+    { rewrite mult_comm. (* (?) *) apply mult_assoc. }
   rewrite H. rewrite mult_assoc. reflexivity.
 Qed.
 
