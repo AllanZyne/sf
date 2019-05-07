@@ -30,3 +30,4 @@ nlia.cache
 nra.cache
 *#
 *~
+*.sublime-workspace
