@@ -765,7 +765,24 @@ Theorem nth_error_after_last: forall (n : nat) (X : Type) (l : list X),
      length l = n ->
      nth_error l n = None.
 Proof.
-  Admitted.
+  intros n X.
+  induction n as [| n' IHn].
+  - intros l H.
+    assert (H' : l = nil). {
+      destruct l as [| h t] eqn:E.
+      - reflexivity.
+      - discriminate H.
+    }
+    rewrite H'.
+    reflexivity.
+  - destruct l as [| h t] eqn:E.
+    + intros H. reflexivity.
+    + simpl.
+      intros H.
+      apply IHn.
+      injection H as H'.
+      apply H'.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -801,7 +818,10 @@ Proof.
 
   rewrite mult_assoc.
   assert (H : n * m * n = n * n * m).
-    { rewrite mult_comm. (* (?) *) apply mult_assoc. }
+    { rewrite mult_comm.
+    (* (!) chengfa zuo jie he
+       n*m*n=(n*m)*n -> n*(n*m) *)
+       apply mult_assoc. }
   rewrite H. rewrite mult_assoc. reflexivity.
 Qed.
 
@@ -950,7 +970,26 @@ Theorem combine_split : forall X Y (l : list (X * Y)) l1 l2,
   split l = (l1, l2) ->
   combine l1 l2 = l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros X Y l.
+  induction l as [| h t IHl].
+  - intros l1 l2 H.
+    simpl in H.
+    symmetry in H.
+    injection H as Hl1 Hl2.
+    rewrite Hl1, Hl2.
+    reflexivity.
+  - simpl.
+    destruct h as [x y].
+    destruct (split t) as [lx ly].
+    intros l1 l2 H.
+    symmetry in H.
+    injection H as Hl1 Hl2.
+    rewrite Hl1, Hl2.
+    simpl.
+    rewrite IHl.
+    reflexivity.
+    reflexivity.
+Qed.
 (** [] *)
 
 (** The [eqn:] part of the [destruct] tactic is optional: We've chosen
@@ -1026,7 +1065,19 @@ Theorem bool_fn_applied_thrice :
   forall (f : bool -> bool) (b : bool),
   f (f (f b)) = f b.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros f b.
+  destruct b eqn: Eb.
+  - destruct (f true) eqn: Hft.
+    + rewrite Hft. apply Hft.
+    + destruct (f false) eqn: Hff.
+      * apply Hft.
+      * apply Hff.
+  - destruct (f false) eqn: Hff.
+    + destruct (f true) eqn: Hft.
+      * apply Hft.
+      * apply Hff.
+    + rewrite Hff. apply Hff.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
