@@ -215,13 +215,13 @@ pre {
     display: inline;
     /* font-size: 125%; */
     color: #444444;
-    font-family: monospace } 
+    font-family: "Fira Code" } 
 
 .doc .inlinecode { 
     display: inline;
-    font-size: 105%;
+    font-size: 100%;
     color: rgb(35%,35%,70%); 
-    font-family: monospace } 
+    font-family: "Fira Code" } 
 
 .doc .inlinecode .id { 
 /* I am changing this to white in style below:
@@ -252,19 +252,19 @@ h1 .inlinecode .id, h1.section span.inlinecode {
     display: inline; 
     font-size: 110%; 
     color: rgb(35%,35%,70%);
-    font-family: monospace;
+    font-family: "Fira Code";
     padding-left: 0px;
 }
 
 .comment { 
     display: inline;
-    font-family: monospace;
+    font-family: "Fira Code";
     color: rgb(50%,50%,80%); 
 } 
 
 .inlineref { 
     display: inline;
-    /* font-family: monospace; */
+    /* font-family: "Fira Code"; */
     color: rgb(50%,50%,80%); 
 } 
 
@@ -276,7 +276,7 @@ h1 .inlinecode .id, h1.section span.inlinecode {
 .show { 
     background-color: rgb(93%,93%,93%);
     display: inline;
-    font-family: monospace;
+    font-family: "Fira Code";
     font-size: 60%; 
     padding-top: 1px; 
     padding-bottom: 2px; 
@@ -288,7 +288,7 @@ h1 .inlinecode .id, h1.section span.inlinecode {
 /*
 .show { 
     display: inline;
-    font-family: monospace;
+    font-family: "Fira Code";
     font-size: 60%; 
     padding-top: 0px; 
     padding-bottom: 0px; 
@@ -334,7 +334,7 @@ h1 .inlinecode .id, h1.section span.inlinecode {
 /* For textual ones... */
 .show-old { 
     display: inline;
-    font-family: monospace;
+    font-family: "Fira Code";
     font-size: 80%; 
     padding-top: 0px; 
     padding-bottom: 0px; 
@@ -352,8 +352,8 @@ h1 .inlinecode .id, h1.section span.inlinecode {
 
 .code { 
     padding-left: 20px;
-    font-size: 14px;
-    font-family: monospace;
+    font-size: 13px;
+    font-family: "Fira Code";
     line-height: 17px;
 } 
 
@@ -362,7 +362,7 @@ h1 .inlinecode .id, h1.section span.inlinecode {
     display: block;
     padding-left: 0px; 
     font-size: 110%;
-    font-family: monospace;
+    font-family: "Fira Code";
  } 
 */
 
@@ -407,7 +407,7 @@ table.infrule {
 }
 
 td.infrule {
-    font-family: monospace;
+    font-family: "Fira Code";
     text-align: center;
     /*    color: rgb(35%,35%,70%);  */
     padding: 0px;
