@@ -103,6 +103,12 @@ Qed.
 Check @eq.
 (* ===> forall A : Type, A -> A -> Prop *)
 
+Check eq.
+(* ===> ?A -> ?A -> Prop
+   where
+   ?A : [ |- Type]
+*)
+
 (** (Notice that we wrote [@eq] instead of [eq]: The type
     argument [A] to [eq] is declared as implicit, so we need to turn
     off implicit arguments to see the full type of [eq].) *)
@@ -155,7 +161,16 @@ Qed.
 Example and_exercise :
   forall n m : nat, n + m = 0 -> n = 0 /\ m = 0.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n m H.
+  apply and_intro.
+  - destruct n as [| n'] eqn: En.
+    + reflexivity.
+    + simpl in H. discriminate H.
+  - destruct m as [| m'].
+    + reflexivity.
+    + rewrite plus_comm in H.
+      simpl in H. discriminate H.
+Qed.
 (** [] *)
 
 (** So much for proving conjunctive statements.  To go in the other
@@ -230,7 +245,8 @@ Proof.
 Lemma proj2 : forall P Q : Prop,
   P /\ Q -> Q.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros P Q [HP HQ].
+  apply HQ.  Qed.
 (** [] *)
 
 (** Finally, we sometimes need to rearrange the order of conjunctions
@@ -257,7 +273,11 @@ Theorem and_assoc : forall P Q R : Prop,
   P /\ (Q /\ R) -> (P /\ Q) /\ R.
 Proof.
   intros P Q R [HP [HQ HR]].
-  (* FILL IN HERE *) Admitted.
+  split.
+  - split.
+    apply HP. apply HQ.
+  - apply HR.
+Qed.
 (** [] *)
 
 (** By the way, the infix notation [/\] is actually just syntactic
@@ -321,14 +341,22 @@ Qed.
 Lemma mult_eq_0 :
   forall n m, n * m = 0 -> n = 0 \/ m = 0.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros [|n] [|m] H.
+  - left. reflexivity.
+  - left. reflexivity.
+  - right. reflexivity.
+  - simpl in H. discriminate.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard (or_commut)  *)
 Theorem or_commut : forall P Q : Prop,
   P \/ Q  -> Q \/ P.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros P Q [HP | HQ].
+  - right. apply HP.
+  - left. apply HQ.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -386,7 +414,15 @@ Proof.
 Fact not_implies_our_not : forall (P:Prop),
   ~ P -> (forall (Q:Prop), P -> Q).
 Proof.
-  (* FILL IN HERE *) Admitted.
+(* intros P HNP Q HP.
+  destruct HNP. (* (?) *)
+  apply HP.
+Qed. *)
+  intros P HNP Q HP.
+  (* unfold not in HNP. *)
+  apply HNP in HP.
+  destruct HP.
+Qed.
 (** [] *)
 
 (** Inequality is a frequent enough example of negated statement
@@ -456,14 +492,25 @@ Definition manual_grade_for_double_neg_inf : option (nat*string) := None.
 Theorem contrapositive : forall (P Q : Prop),
   (P -> Q) -> (~Q -> ~P).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros P Q H HNQ.
+  unfold not.
+  intro HP.
+  apply H in HP.
+  apply HNQ in HP.
+  apply HP.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard (not_both_true_and_false)  *)
 Theorem not_both_true_and_false : forall P : Prop,
   ~ (P /\ ~P).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros P.
+  unfold not.
+  intros [HP HNP].
+  apply HNP.
+  apply HP.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, advanced (informal_not_PNP)  
@@ -574,19 +621,45 @@ Qed.
 Theorem iff_refl : forall P : Prop,
   P <-> P.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros P.
+  unfold iff.
+  split.
+  - intros HP. apply HP.
+  - intros HP. apply HP.
+Qed.
 
 Theorem iff_trans : forall P Q R : Prop,
   (P <-> Q) -> (Q <-> R) -> (P <-> R).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros P Q R [HPQ HQP] [HQR HRQ].
+  split.
+  - intros HP. apply HQR, HPQ, HP.
+  - intros HR. apply HQP, HRQ, HR.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard (or_distributes_over_and)  *)
 Theorem or_distributes_over_and : forall P Q R : Prop,
   P \/ (Q /\ R) <-> (P \/ Q) /\ (P \/ R).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros P Q R.
+  split.
+  - intros [HP | [HQ HR]].
+    + assert (HPQ: P \/ Q). { apply or_intro. apply HP. }
+      assert (HPR: P \/ R). { apply or_intro. apply HP. }
+      apply and_intro.
+      apply HPQ. apply HPR.
+    + assert (HPQ: P \/ Q). { apply or_comm, or_intro, HQ. }
+      assert (HPR: P \/ R). { apply or_comm, or_intro, HR. }
+      apply and_intro.
+      apply HPQ. apply HPR.
+  - intros [[HP | HQ] [HP' | HR]].
+    + apply or_intro, HP.
+    + apply or_intro, HP.
+    + apply or_intro, HP'.
+    + assert (HQR: Q /\ R). { apply and_intro. apply HQ. apply HR. }
+      apply or_comm, or_intro, HQR.
+Qed.
 (** [] *)
 
 (** Some of Coq's tactics treat [iff] statements specially, avoiding
@@ -629,7 +702,8 @@ Lemma mult_0_3 :
   forall n m p, n * m * p = 0 <-> n = 0 \/ m = 0 \/ p = 0.
 Proof.
   intros n m p.
-  rewrite mult_0. rewrite mult_0. rewrite or_assoc.
+  rewrite mult_0. (* (!) rewrite outside firstly *)
+  rewrite mult_0. rewrite or_assoc.
   reflexivity.
 Qed.
 
@@ -687,7 +761,12 @@ Proof.
 Theorem dist_not_exists : forall (X:Type) (P : X -> Prop),
   (forall x, P x) -> ~ (exists x, ~ P x).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros X P H H'.
+  destruct H' as [x HNP].
+  assert (HP: P x). { apply H. } (* (?) simplify *)
+  apply HNP in HP.
+  apply HP.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (dist_exists_or)  
@@ -698,7 +777,15 @@ Proof.
 Theorem dist_exists_or : forall (X:Type) (P Q : X -> Prop),
   (exists x, P x \/ Q x) <-> (exists x, P x) \/ (exists x, Q x).
 Proof.
-   (* FILL IN HERE *) Admitted.
+  intros X P Q.
+  split.
+  - intros [x [HP | HQ]].
+    + left. exists x. apply HP.
+    + right. exists x. apply HQ.
+  - intros [[x HP] | [x HQ]].
+    + exists x. left. apply HP.
+    + exists x. right. apply HQ.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
