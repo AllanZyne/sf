@@ -3,7 +3,7 @@
 	[
 		{
 			"path": ".",
-			"file_exclude_patterns": ["*.vo", ".*", "*.glob"],
+			"file_exclude_patterns": ["#*", "*.vo", ".*", "*.glob"],
 			"index_include_patterns": ["*.v"],
 			"index_exclude_patterns": ["*Test.v"]
 		}
