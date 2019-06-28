@@ -1266,6 +1266,7 @@ Proof. reflexivity. Qed.
 Example function_equality_ex2 :
   (fun x => plus x 1) = (fun x => plus 1 x).
 Proof.
+  (* rewrite plus_comm. (!) x is not in premise *)
    (* Stuck *)
 Abort.
 
@@ -1613,37 +1614,34 @@ Qed.
     [eqb_eq] that is more convenient in certain
     situations (we'll see examples in later chapters). *)
 
+Lemma neq_eqb : forall x y : nat,
+  x <> y -> x =? y = false.
+Proof.
+  intros x.
+  induction x as [| x' IHx'].
+  - intros y H.
+    destruct y as [| y'].
+    + exfalso.
+      apply H.
+      reflexivity.
+    + apply zero_nbeq_S.
+  - intros y H.
+    destruct y as [| y'].
+    + apply S_nbeq_0.
+    + simpl. 
+      apply IHx'.
+      unfold not.
+      intros H'.
+      apply H.
+      rewrite H'.
+      reflexivity.
+Qed.
+
 Theorem eqb_neq : forall x y : nat,
   x =? y = false <-> x <> y.
 Proof.
-(*   intros [|x] [|y].
-  - split.
-    + simpl. intros contra. discriminate contra.
-    + simpl.
-      unfold not. 
-      intros H.
-      apply ex_falso_quodlibet.
-      apply H.
-      reflexivity.
-  - split.
-    + simpl. intros _ contra. discriminate contra.
-    + simpl. intros _. reflexivity.
-  - split.
-    + simpl. intros _ contra. discriminate contra.
-    + simpl. intros _. reflexivity.
-  - split.
-    + simpl. intros H H'.
-      injection H' as Hxy.
-      rewrite Hxy in H.
-      rewrite <- eqb_refl in H.
-      discriminate H.
-    + simpl.
-      unfold not.
-      intros H.
-      apply ex_falso_quodlibet.
-      apply H. *)
   intros x y.
-  split. (* (!) x,y automatic intros *)
+  split.
   - destruct x as [|x'].
     + destruct y as [|y'].
       * simpl. intros contra. discriminate contra.
@@ -1655,18 +1653,8 @@ Proof.
         rewrite Hxy in H.
         rewrite <- eqb_refl in H.
         discriminate H.
-  - induction x as [|x' IHx].
-    + induction y as [|y' IHy].
-      * simpl.
-        intros H.
-        apply ex_falso_quodlibet.
-        apply H.
-        reflexivity.
-      * simpl. intros _. reflexivity.
-    + induction y as [|y' IHy].
-      * simpl. intros _. reflexivity.
-      * simpl.
-    Abort.
+  - apply neq_eqb.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard (eqb_list)  
@@ -1678,15 +1666,70 @@ Proof.
     definition is correct, prove the lemma [eqb_list_true_iff]. *)
 
 Fixpoint eqb_list {A : Type} (eqb : A -> A -> bool)
-                  (l1 l2 : list A) : bool
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+                  (l1 l2 : list A) : bool :=
+  match l1, l2 with
+  | [], [] => true
+  | [], _ => false
+  | _, [] => false
+  | x :: xs, y :: ys => if eqb x y then eqb_list eqb xs ys
+                        else false
+  end.
 
 Lemma eqb_list_true_iff :
   forall A (eqb : A -> A -> bool),
     (forall a1 a2, eqb a1 a2 = true <-> a1 = a2) ->
     forall l1 l2, eqb_list eqb l1 l2 = true <-> l1 = l2.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros A eqb Heqb l1.
+  split.
+  - generalize dependent l2.
+    induction l1 as [| x xs IHx].
+    + intros [| y ys].
+      * intros H. reflexivity.
+      * simpl.
+        intros contra.
+        discriminate contra.
+    + intros [| y ys].
+      {
+        simpl.
+        intros contra.
+        discriminate contra.
+      }
+      {
+        simpl.
+        destruct (eqb x y) eqn: E.
+        - apply Heqb in E.
+          intros H.
+          apply IHx in H.
+          rewrite E. rewrite H.
+          reflexivity.
+        - intros contra. discriminate contra.
+      }
+  - generalize dependent l2.
+    induction l1 as [| x xs IHx].
+    + intros [| y ys].
+      * intros H. simpl. reflexivity.
+      * intros contra. discriminate contra.
+    + intros [| y ys].
+      {
+        intros contra. discriminate contra.
+      }
+      {
+        simpl.
+        destruct (eqb x y) eqn: E.
+        - apply Heqb in E.
+          intros H.
+          apply IHx.
+          rewrite E in H.
+          injection H as H'.
+          apply H'.
+        - intros H.
+          injection H as Hxy.
+          apply Heqb in Hxy.
+          rewrite Hxy in E.
+          discriminate E.
+      }
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, recommended (All_forallb)  
@@ -1703,15 +1746,38 @@ Fixpoint forallb {X : Type} (test : X -> bool) (l : list X) : bool :=
 (** Prove the theorem below, which relates [forallb] to the [All]
     property of the above exercise. *)
 
+Lemma refl_True: forall X (x:X), x = x <-> True.
+Proof.
+  intros X x.
+  split.
+  - intros H. apply I.
+  - intros H. reflexivity.
+Qed.
+
 Theorem forallb_true_iff : forall X test (l : list X),
    forallb test l = true <-> All (fun x => test x = true) l.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros X test l.
+  induction l as [|x l' IHl'].
+  - simpl. apply refl_True.
+  - simpl. destruct (test x).
+    + simpl. split.
+      * intros H. split.
+        reflexivity.
+        apply IHl'.
+        apply H.
+      * intros [_ H].
+        apply IHl' in H.
+        apply H.
+    + simpl. split.
+      * intros contra. discriminate contra.
+      * intros [contra _]. discriminate contra.
+Qed.
 
 (** Are there any important properties of the function [forallb] which
     are not captured by this specification? *)
 
-(* FILL IN HERE 
+(* TODO
 
     [] *)
 
@@ -1875,9 +1941,11 @@ Theorem not_exists_dist :
     ~ (exists x, ~ P x) -> (forall x, P x).
 Proof.
   unfold excluded_middle.
-  intros HA X P HNE x.
-  destruct HA with (P := P x).
-Admitted.
+  intros EM X P H x.
+  destruct (EM (P x)) as [HP | HNP]. (*! forall in hypothesis *)
+  - apply HP.
+  - exfalso. apply H. exists x. apply HNP.
+Qed.
 (** [] *)
 
 (** **** Exercise: 5 stars, standard, optional (classical_axioms)  
@@ -1903,6 +1971,38 @@ Definition de_morgan_not_and_not := forall P Q:Prop,
 
 Definition implies_to_or := forall P Q:Prop,
   (P->Q) -> (~P\/Q).
+
+
+(* 
+Lemma em_peirce: peirce -> excluded_middle.
+Proof.
+  unfold peirce.
+  unfold excluded_middle.
+  intros PRC P.
+  apply (PRC (P\/~P) P).
+  
+  intros H.
+  right.
+  intro HP.
+  apply (or_intro P (~P)) in HP.
+  
+  apply H.
+  
+  intros H.
+  exfalso.
+  apply HNNP.
+*)
+
+Lemma em_peirce: excluded_middle -> peirce.
+Proof.
+  unfold excluded_middle.
+  unfold peirce.
+  intros EM P Q H.
+  apply H.
+  intros HP.
+  destruct (EM (P->Q)) as [H' | H'].
+  - apply (H' HP).
+  - Admitted. (* TODO *)
 
 (* FILL IN HERE 
 

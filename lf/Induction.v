@@ -728,7 +728,7 @@ Proof.
   - destruct n' as [| n' | n'].
     + reflexivity.
     + reflexivity.
-    + reflexivity. (* (?) *)
+    + reflexivity.
   - simpl.
     rewrite <- plus_n_O.
     rewrite <- plus_n_O. 
@@ -806,7 +806,7 @@ Fixpoint normalize (b : bin) : bin :=
   | Z => Z
   | A b' => match normalize b' with
             | Z => Z
-            | _ => A b'
+            | _ => b
             end
   | B b' => B (normalize b')
   end.
@@ -818,25 +818,49 @@ Proof. reflexivity. Qed.
 Example test_normalize2: normalize (B (B (A (A Z)))) = B (B Z).
 Proof. simpl. reflexivity. Qed.
 
-Lemma nor_nat_bin_nat1 :
-  forall n, bin_to_nat n = 0 -> normalize n = Z.
+Lemma nat_bin_nat_0_nor :
+  forall b, bin_to_nat b = 0 -> normalize b = Z.
 Proof.
-  intros n.
-  induction n as [| a IHa | b IHb].
-  - reflexivity.
-  - intros H. simpl. rewrite IHa.
-    + reflexivity.
-    +  
-Abort.
+  Admitted.
+
+Lemma nat_bin_nat_S_nor :
+  forall b n, bin_to_nat b = S n -> normalize b = b.
+Proof.
+  Admitted.
+
+Lemma nat_to_bin_double :
+  forall n, nat_to_bin (S n + S n) = A (nat_to_bin (S n)).
+Proof.
+  Admitted.
+
+Theorem ex_falso_quodlibet : forall (P:Prop),
+  False -> P.
+Admitted.
 
 Theorem nor_nat_bin_nat : 
   forall n, normalize n = nat_to_bin (bin_to_nat n).
 Proof.
-  intros n.
-  destruct (bin_to_nat n) as [] eqn:Hbn.
-  - 
+  (* intros n.
+  destruct (bin_to_nat n) as [|n'] eqn:En.
+  - simpl.
+    apply nat_bin_nat_0_nor in En.
+    apply En.
+  - simpl.
+    induction n as [|b IHa|b IHb].
+    + simpl in En. discriminate En.
+    + simpl in En. rewrite <- plus_n_O in En. *)
+  induction n as [|b IHa|b IHb].
+  - simpl. reflexivity.
+  - simpl.
+    rewrite <- plus_n_O.
+    destruct (bin_to_nat b) as [|n'] eqn:Eb.
+    + apply nat_bin_nat_0_nor in Eb.
+      rewrite Eb. simpl. reflexivity.
+    + rewrite nat_to_bin_double.
+      rewrite <- IHa.
+      destruct (normalize b) as [|b'|b'].
+      * 
 Abort. (*(?)*)
-
 
 
 (* Do not modify the following line: *)
