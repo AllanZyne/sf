@@ -176,10 +176,16 @@ Print ev_4'''.
 
 Theorem ev_8 : even 8.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply ev_SS.
+  apply ev_SS.
+  apply ev_SS.
+  apply ev_SS.
+  apply ev_0.
+Qed.
 
-Definition ev_8' : even 8
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Print ev_8.
+
+Definition ev_8' : even 8 := ev_SS 6 (ev_SS 4 (ev_SS 2 (ev_SS 0 ev_0))).
 (** [] *)
 
 (* ################################################################# *)
@@ -336,6 +342,11 @@ Inductive and (P Q : Prop) : Prop :=
 
 End And.
 
+(*
+conj
+     : forall A B : Prop, A -> B -> A /\ B
+*)
+
 (** Notice the similarity with the definition of the [prod] type,
     given in chapter [Poly]; the only difference is that [prod] takes
     [Type] arguments, whereas [and] takes [Prop] arguments. *)
@@ -381,8 +392,14 @@ Definition and_comm' P Q : P /\ Q <-> Q /\ P :=
 
     Construct a proof object demonstrating the following proposition. *)
 
-Definition conj_fact : forall P Q R, P /\ Q -> Q /\ R -> P /\ R
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition conj_fact : forall P Q R, P /\ Q -> Q /\ R -> P /\ R :=
+  fun (P:Prop) => fun (Q:Prop) => fun (R:Prop) =>
+  fun (HPQ : P /\ Q) => fun (HQR : Q /\ R) => 
+    match HPQ with
+    | conj HP HQ => match HQR with
+                    | conj HQ HR => conj HP HR
+                    end
+    end.
 (** [] *)
 
 (* ================================================================= *)
@@ -411,8 +428,12 @@ End Or.
     Try to write down an explicit proof object for [or_commut] (without
     using [Print] to peek at the ones we already defined!). *)
 
-Definition or_comm : forall P Q, P \/ Q -> Q \/ P
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition or_comm : forall P Q, P \/ Q -> Q \/ P :=
+  fun (P Q:Prop) => fun (H:P\/Q) =>
+    match H with
+    | or_introl HP => or_intror HP
+    | or_intror HQ => or_introl HQ
+    end.
 (** [] *)
 
 (* ================================================================= *)
@@ -426,6 +447,8 @@ Module Ex.
 
 Inductive ex {A : Type} (P : A -> Prop) : Prop :=
 | ex_intro : forall x : A, P x -> ex P.
+
+Check @ex_intro.
 
 End Ex.
 
@@ -448,12 +471,12 @@ Check ex (fun n => even n).
 Definition some_nat_is_even : exists n, even n :=
   ex_intro even 4 (ev_SS 2 (ev_SS 0 ev_0)).
 
-(** **** Exercise: 2 stars, standard, optional (ex_ev_Sn)  
+(** **** Exercise: 2 stars, standard, optional (ex_ev_Sn)
 
     Complete the definition of the following proof object: *)
 
-Definition ex_ev_Sn : ex (fun n => even (S n))
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition ex_ev_Sn : ex (fun n => even (S n)) :=
+  ex_intro (fun n => even (S n)) 1 (ev_SS 0 ev_0).
 (** [] *)
 
 (* ================================================================= *)
@@ -545,7 +568,10 @@ Definition singleton : forall (X:Type) (x:X), []++[x] == x::[]  :=
 Lemma equality__leibniz_equality : forall (X : Type) (x y: X),
   x == y -> forall P:X->Prop, P x -> P y.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros X x y Hxy P HP.
+  destruct Hxy as [z].
+  apply HP.
+Qed.
 (** [] *)
 
 (** **** Exercise: 5 stars, standard, optional (leibniz_equality__equality)  
@@ -556,8 +582,10 @@ Proof.
 Lemma leibniz_equality__equality : forall (X : Type) (x y: X),
   (forall P:X->Prop, P x -> P y) -> x == y.
 Proof.
-(* FILL IN HERE *) Admitted.
-
+  intros X x y Hlbz.
+  apply (Hlbz (eq x)).
+  apply eq_refl.
+Qed.
 (** [] *)
 
 End MyEquality.
