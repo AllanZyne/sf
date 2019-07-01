@@ -1010,13 +1010,12 @@ Proof.
   - simpl. apply ss3. apply IHH'.
 Qed.
 
-Lemma subseq_h : forall h l1 l2, subseq (h :: l1) l2 -> subseq l1 l2.
+Lemma subseq_nil: forall l, subseq l [] -> l = [].
 Proof.
-  intros h l1 l2 H.
-  inversion H as [l | h' l1' l2' H' | h' l1' l2' H'].
-  - apply ss3. apply H'.
-  - rewrite <- H1 in H.
-    Admitted. (* TODO *)
+  intros l H.
+  inversion H.
+  reflexivity.
+Qed.
 
 Theorem subseq_trans : forall (l1 l2 l3 : list nat),
   subseq l1 l2 ->
@@ -1024,9 +1023,17 @@ Theorem subseq_trans : forall (l1 l2 l3 : list nat),
   subseq l1 l3.
 Proof.
   intros l1 l2 l3 H12 H23.
-  induction H12 as [l2 | h l1 l2 H' IHH' | h l1 l2 H IHH'].
-  - apply ss1.
-  - Admitted. (* TODO *)
+  generalize dependent l1.
+  induction H23 as [l3 | h l2 l3 H IHH | h l2 l3 H IHH].
+  - intros l1 H12. apply subseq_nil in H12. rewrite H12. apply ss1.
+  - intros l1 H12.
+    inversion H12 as [l' | h' l1' l2' H' | h' l1' l2' H'].
+    + apply ss1.
+    + apply ss2. apply IHH in H'. apply H'.
+    + apply ss3. apply IHH in H'. apply H'.
+  - intros l1 H12.
+    apply ss3. apply IHH in H12. apply H12.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (R_provability2)  
@@ -1043,6 +1050,29 @@ Proof.
     - [R 2 [1;0]]
     - [R 1 [1;2;1;0]]
     - [R 6 [3;2;1;0]]  *)
+
+Inductive R : nat -> list nat -> Prop :=
+  | c1 : R 0 []
+  | c2 : forall n l, R n l -> R (S n) (n :: l)
+  | c3 : forall n l, R (S n) l -> R n l.
+
+Theorem ex1_R : R 2 [1;0].
+Proof.
+  apply (c2 1 [0] (c2 0 [] c1)).
+Qed.
+
+Theorem ex2_R : R 1 [1;2;1;0].
+Proof.
+(*   apply c3.
+  apply c2.
+  apply c3.
+  apply c3.
+  apply c2.
+  apply c2.
+  apply c2.
+  apply c1. *)
+  apply (c3 _ _ (c2 _ _ (c3 _ _ (c3 _ _ (c2 _ _ (c2 _ _ (c2 _ _ c1))))))).
+Qed.
 
 (* FILL IN HERE 
 
@@ -1302,22 +1332,66 @@ Qed.
     Prove that [reg_exp_of_list] satisfies the following
     specification: *)
 
+Lemma MChar' : forall (T:Type) (s:list T) (c:T), s =~ Char c -> s = [c].
+Proof.
+  intros T s c H.
+  inversion H.
+  reflexivity.
+Qed.
+
 Lemma reg_exp_of_list_spec : forall T (s1 s2 : list T),
   s1 =~ reg_exp_of_list s2 <-> s1 = s2.
 Proof.
   intros T s1 s2.
   split.
-  - intros H.
+  - generalize dependent s2.
     induction s1 as [| n1 s1' IHs1'].
-    (* {
-      destruct s2 as [| n2 s2'].
+    {
+      intros [| n2 s2'].
       - reflexivity.
-      - simpl in H.
+      - intros H. simpl in H.
         rewrite <- (app_nil_r _ []) in H.
         inversion H.
-    }         *)
-    + 
-  (* FILL IN HERE *) Admitted.
+        assert (H': s1 = []). { destruct s1. reflexivity. discriminate H1. }
+        rewrite H' in H3. inversion H3.
+    }
+    {
+      intros s2 H.
+      destruct s2 as [| n2 s2'].
+      - simpl in H. inversion H.
+      - simpl in H.
+        inversion H.
+        apply MChar' in H3.
+        rewrite H3 in *.
+        injection H1 as Heq.
+        simpl.
+        assert (H': s2 = s2' -> n2 :: s2 = n2 :: s2').
+        {
+          intros Hs2. rewrite Hs2. reflexivity.
+        }
+        apply H'.
+        rewrite H1.
+        apply IHs1'.
+        rewrite H1 in H4.
+        apply H4.
+    }
+  - intros H.
+    rewrite <- H.
+    assert (H': forall (T:Type) (s:list T), s =~ reg_exp_of_list s).
+    {
+      intros T' s'.
+      induction s' as [|n' s' IHs'].
+      - apply MEmpty.
+      - simpl.
+        assert (H': n' :: s' = [n'] ++ s').
+        { reflexivity. }
+        rewrite H'.
+        apply MApp.
+        + apply MChar.
+        + apply IHs'.
+    }
+    apply H'.
+Qed.
 (** [] *)
 
 (** Since the definition of [exp_match] has a recursive
@@ -1915,8 +1989,12 @@ Qed.
     [nostutter]. *)
 
 Inductive nostutter {X:Type} : list X -> Prop :=
- (* FILL IN HERE *)
-.
+(* | nost_nil : nostutter nil
+| nost_x (x:X) : nostutter [x]
+| nost_1 (x:X) (l:list X) (H1: nostutter l) 
+         (H2: l <> nil) (H3: head l <> x) : nostutter (x::l) *)
+. (* TODO *)
+
 (** Make sure each of these tests succeeds, but feel free to change
     the suggested proof (in comments) if the given one doesn't work
     for you.  Your definition might be different from ours and still
