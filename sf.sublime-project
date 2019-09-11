@@ -2,10 +2,23 @@
 	"folders":
 	[
 		{
-			"path": ".",
-			"file_exclude_patterns": ["#*", "*.vo", ".*", "*.glob"],
-			"index_include_patterns": ["*.v"],
-			"index_exclude_patterns": ["*Test.v"]
+			"file_exclude_patterns":
+			[
+				"#*",
+				"*.vo",
+				".*",
+				"*.glob",
+				"*.aux"
+			],
+			"index_exclude_patterns":
+			[
+				"*Test.v"
+			],
+			"index_include_patterns":
+			[
+				"*.v"
+			],
+			"path": "."
 		}
 	]
 }
