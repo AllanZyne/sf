@@ -175,7 +175,7 @@ Definition firstExpect {T} (t : token) (p : parser T)
                      : parser T :=
   fun xs => match xs with
             | x::xs' =>
-              if string_dec x t
+              if string_dec x t (* string comparation *)
               then p xs'
               else NoneE ("expected '" ++ t ++ "'.")
             | [] =>

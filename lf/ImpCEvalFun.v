@@ -210,8 +210,17 @@ Definition test_ceval (st:state) (c:com) :=
    [X] (inclusive: [1 + 2 + ... + X]) in the variable [Y].  Make sure
    your solution satisfies the test that follows. *)
 
-Definition pup_to_n : com
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition pup_to_n : com :=
+  Y ::= 0 ;;
+  WHILE ~(X = 0) DO
+    Y ::= X + Y ;;
+    X ::= X - 1
+  END.
+
+Example pup_to_n_1 :
+  test_ceval (X !-> 5) pup_to_n
+  = Some (0, 15, 0).
+Proof. reflexivity. Qed.
 
 (* 
 
@@ -228,9 +237,26 @@ Proof. reflexivity. Qed.
     sets [Z] to [1] otherwise.  Use [test_ceval] to test your
     program. *)
 
-(* FILL IN HERE 
+Definition peven : com :=
+  Z ::= X ;;
+  WHILE ~(Z <= 1) DO
+    Z ::= Z - 2
+  END.
 
-    [] *)
+Example peven_x_0 :
+  test_ceval (X !-> 0) peven
+  = Some (0, 0, 0).
+Proof. simpl.  reflexivity. Qed.
+
+Example peven_x_1 :
+  test_ceval (X !-> 1) peven
+  = Some (1, 0, 1).
+Proof. simpl.  reflexivity. Qed.
+
+Example peven_x_5 :
+  test_ceval (X !-> 5) peven
+  = Some (5, 0, 1).
+Proof. simpl.  reflexivity. Qed.
 
 (* ################################################################# *)
 (** * Relational vs. Step-Indexed Evaluation *)
@@ -250,6 +276,7 @@ Proof.
   generalize dependent st'.
   generalize dependent st.
   generalize dependent c.
+
   induction i as [| i' ].
 
   - (* i = 0 -- contradictory *)
@@ -257,7 +284,43 @@ Proof.
 
   - (* i = S i' *)
     intros c st st' H.
-    destruct c;
+
+    destruct c.
+    + simpl in H. inversion H. subst. clear H.
+      apply E_Skip.
+    + simpl in H. inversion H. subst. clear H.
+      apply E_Ass. reflexivity.
+    + simpl in H. inversion H. subst. clear H.
+      destruct (ceval_step st c1 i') eqn:Heqr1.
+      * apply E_Seq with s.
+          apply IHi'. rewrite Heqr1. reflexivity.
+          apply IHi'. apply H1.
+      * discriminate H1.
+    + simpl in H. inversion H. subst. clear H.
+      destruct (beval st b) eqn:Heqr.
+      * apply E_IfTrue.
+          apply Heqr.
+          apply IHi'. assumption.
+      * apply E_IfFalse.
+          apply Heqr.
+          apply IHi'. apply H1.
+    + simpl in H. inversion H. clear H.
+      destruct (beval st b) eqn:Heqr1.
+      * (* r1 = true *)
+        destruct (ceval_step st c i') eqn:Heqr.
+          (* r = Some s *)
+          apply E_WhileTrue with s.
+          apply Heqr1.
+          apply IHi'. apply Heqr.
+          apply IHi'. apply H1.
+          (* r = None *)
+          discriminate H1.
+      * (* r1 = false *)
+        inversion H1. subst.
+        apply E_WhileFalse.
+        apply Heqr1.
+Qed.
+(*  destruct c;
            simpl in H; inversion H; subst; clear H.
       + (* SKIP *) apply E_Skip.
       + (* ::= *) apply E_Ass. reflexivity.
@@ -292,6 +355,7 @@ Proof.
         * (* r = false *)
           injection H1. intros H2. rewrite <- H2.
           apply E_WhileFalse. apply Heqr. Qed.
+*)
 
 (** **** Exercise: 4 stars, standard (ceval_step__ceval_inf)  
 
@@ -363,7 +427,52 @@ Theorem ceval__ceval_step: forall c st st',
 Proof.
   intros c st st' Hce.
   induction Hce.
-  (* FILL IN HERE *) Admitted.
+  - (* E_Skip *)
+    exists 1.
+    reflexivity.
+  - (* E_Ass *)
+    exists 1.
+    simpl. rewrite H.
+    reflexivity.
+  - (* E_Seq *)
+    destruct IHHce1 as [i1 IHHce1].
+    destruct IHHce2 as [i2 IHHce2].
+    exists (1 + i1 + i2).
+    simpl.
+    assert (Hle1: i1 <= i1 + i2) by apply le_plus_l.
+    apply (ceval_step_more i1 (i1+i2)) in IHHce1; try assumption.
+    rewrite IHHce1.
+    assert (Hle2: i2 <= i1 + i2) by apply le_plus_r.
+    apply (ceval_step_more i2 (i1+i2)) in IHHce2; assumption.
+  - (* E_IfTrue *)
+    destruct IHHce as [i IHHce].
+    exists (1+i).
+    simpl.
+    destruct (beval st b); try discriminate.
+    assumption.
+  - (* E_IfFalse *)
+    destruct IHHce as [i IHHce].
+    exists (1+i).
+    simpl.
+    destruct (beval st b); try discriminate.
+    assumption.
+  - (* E_WhileFalse *)
+    exists 1.
+    simpl.
+    rewrite H.
+    reflexivity.
+  - (* E_WhileTrue *)
+    destruct IHHce1 as [i1 IHHce1].
+    destruct IHHce2 as [i2 IHHce2].
+    exists (1 + i1 + i2).
+    simpl.
+    destruct (beval st b) eqn:Heqr; try discriminate.
+    assert (Hle1: i1 <= i1 + i2) by omega.
+    apply (ceval_step_more i1 (i1+i2)) in IHHce1; try assumption.
+    rewrite IHHce1.
+    assert (Hle2: i2 <= i1 + i2) by omega.
+    apply (ceval_step_more i2 (i1+i2)) in IHHce2; assumption.
+Qed.
 (** [] *)
 
 Theorem ceval_and_ceval_step_coincide: forall c st st',
