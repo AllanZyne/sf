@@ -35,6 +35,13 @@ Theorem ceval_deterministic: forall c st st1 st2,
     st =[ c ]=> st2 ->
     st1 = st2.
 Proof.
+  (* intros c st st1 st2 E1 E2.
+  generalize dependent st2.
+  induction E1; intros st2 E2.
+  - inv E2. reflexivity.
+  - inv E2. reflexivity.
+  - inv E2. 
+   *)
   intros c st st1 st2 E1 E2;
   generalize dependent st2;
   induction E1; intros st2 E2; inv E2.
