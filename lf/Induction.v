@@ -806,13 +806,13 @@ Fixpoint normalize (b : bin) : bin :=
   | Z => Z
   | A b' => match normalize b' with
             | Z => Z
-            | _ => b
+            | _ => A (normalize b')
             end
   | B b' => B (normalize b')
   end.
 
 Example test_normalize1: normalize (A (B Z)) = (A (B Z)).
-Proof. reflexivity. Qed.
+Proof. simpl. reflexivity. Qed.
 
 (* non-normalize *)
 Example test_normalize2: normalize (B (B (A (A Z)))) = B (B Z).
@@ -821,34 +821,38 @@ Proof. simpl. reflexivity. Qed.
 Lemma nat_bin_nat_0_nor :
   forall b, bin_to_nat b = 0 -> normalize b = Z.
 Proof.
-  Admitted.
-
-Lemma nat_bin_nat_S_nor :
-  forall b n, bin_to_nat b = S n -> normalize b = b.
-Proof.
-  Admitted.
+  intros b H.
+  induction b as [| b IHa | b IHb].
+  - reflexivity.
+  - simpl in *.
+    rewrite <- plus_n_O in H.
+    apply Plus.plus_is_O in H.
+    destruct H as [Hb _].
+    apply IHa in Hb.
+    rewrite Hb.
+    reflexivity.
+  - simpl in *.
+    destruct b; discriminate H.
+Qed.
 
 Lemma nat_to_bin_double :
   forall n, nat_to_bin (S n + S n) = A (nat_to_bin (S n)).
 Proof.
-  Admitted.
-
-Theorem ex_falso_quodlibet : forall (P:Prop),
-  False -> P.
-Admitted.
+  intros n.
+  induction n as [| n'].
+  - simpl. reflexivity.
+  - simpl in *.
+    rewrite <- plus_n_Sm in *.
+    rewrite <- plus_n_Sm.
+    simpl in *.
+    rewrite IHn'.
+    simpl.
+    reflexivity.
+Qed.
 
 Theorem nor_nat_bin_nat : 
   forall n, normalize n = nat_to_bin (bin_to_nat n).
 Proof.
-  (* intros n.
-  destruct (bin_to_nat n) as [|n'] eqn:En.
-  - simpl.
-    apply nat_bin_nat_0_nor in En.
-    apply En.
-  - simpl.
-    induction n as [|b IHa|b IHb].
-    + simpl in En. discriminate En.
-    + simpl in En. rewrite <- plus_n_O in En. *)
   induction n as [|b IHa|b IHb].
   - simpl. reflexivity.
   - simpl.
@@ -857,11 +861,19 @@ Proof.
     + apply nat_bin_nat_0_nor in Eb.
       rewrite Eb. simpl. reflexivity.
     + rewrite nat_to_bin_double.
-      rewrite <- IHa.
-      destruct (normalize b) as [|b'|b'].
-      * 
-Abort. (*(?)*)
-
+      rewrite IHa.
+      simpl.
+      destruct (nat_to_bin n'); reflexivity.
+  - simpl.
+    rewrite <- plus_n_O.
+    destruct (bin_to_nat b) as [|n'] eqn:Eb.
+    + apply nat_bin_nat_0_nor in Eb.
+      rewrite Eb.
+      reflexivity.
+    + rewrite nat_to_bin_double.
+      rewrite IHb.
+      reflexivity.
+Qed.
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_binary_inverse_c : option (nat*string) := None.

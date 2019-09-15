@@ -1495,7 +1495,6 @@ Fixpoint dscr (m:bin) : bin :=
 Fixpoint bin_to_nat (m:bin) : nat :=
   match m with
   | Z => 0
-  | B Z => 1
   | B m' => 1 + 2 * (bin_to_nat m')
   | A m' => 2 * (bin_to_nat m')
   end.
