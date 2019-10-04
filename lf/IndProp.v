@@ -1600,7 +1600,7 @@ Abort.
 
 Lemma star_app: forall T (s1 s2 : list T) (re re' : reg_exp),
   re' = Star re ->
-  s1 =~ re' ->
+  s1 =~ re' -> (* sufficiently general *)
   s2 =~ Star re ->
   s1 ++ s2 =~ Star re.
 
@@ -1781,6 +1781,16 @@ Qed.
     a (constructive!) way to generate strings matching [re] that are
     as long as we like. *)
 
+Lemma pumping_star : forall T s1 s2 (re : @reg_exp T),
+  s1 =~ re -> s2 =~ Star re -> (forall m, napp m s1 ++ s2 =~ Star re).
+Proof.
+  intros T s1 s2 re Hmatch1 Hmatch2 m.
+  induction m; simpl.
+  - assumption.
+  - rewrite <- app_assoc.
+    apply MStarApp; assumption.
+Qed.
+
 Lemma pumping : forall T (re : @reg_exp T) s,
   s =~ re ->
   pumping_constant re <= length s ->
@@ -1799,6 +1809,11 @@ Lemma pumping : forall T (re : @reg_exp T) s,
 
 Import Coq.omega.Omega.
 
+Locate "=~".
+(* Notation
+"s =~ re" := exp_match s re
+(default interpretation) *)
+
 Proof.
   intros T re s Hmatch.
   induction Hmatch
@@ -1807,7 +1822,97 @@ Proof.
        | re | s1 s2 re Hmatch1 IH1 Hmatch2 IH2 ].
   - (* MEmpty *)
     simpl. omega.
-  (* FILL IN HERE *) Admitted.
+  - (* MChar *)
+    simpl. omega.
+  - (* MApp *)
+    intros Hle.
+    simpl in Hle.
+    rewrite app_length in Hle.
+    assert (H': forall a b c d, a + b <= c + d -> (a <= c) \/ (b <= d)).
+    { intros; omega. }
+    apply H' in Hle.
+    clear H'.
+    destruct Hle as [H1 | H2].
+    + (* pumping_constant re1 <= length s1 *)
+      apply IH1 in H1.
+      destruct H1 as [w1 [w2 [w3 [H1 [H2 H3]]]]].
+      exists w1, w2, (w3++s2).
+      split.
+        assert (H': w1 ++ w2 ++ w3 ++ s2 = (w1 ++ w2 ++ w3) ++ s2).
+        { rewrite app_assoc. rewrite app_assoc. rewrite <- (app_assoc _ w1). reflexivity. }
+        rewrite H'.
+        rewrite <- H1.
+        reflexivity.
+        split.
+          assumption.
+          intros m.
+          rewrite app_assoc.
+          rewrite app_assoc.
+          rewrite <- (app_assoc _ w1).
+          apply MApp.
+            apply H3.
+            assumption.
+     + (* pumping_constant re2 <= length s2 *)
+       apply IH2 in H2.
+       destruct H2 as [w1 [w2 [w3 [H1 [H2 H3]]]]].
+        exists (s1++w1), w2, w3.
+        split.
+          assert (H': (s1 ++ w1) ++ w2 ++ w3 = s1 ++ w1 ++ w2 ++ w3).
+          { rewrite <- app_assoc. reflexivity. }
+          rewrite H'.
+          rewrite H1.
+          reflexivity.
+          split.
+            assumption.
+            intros m.
+            rewrite <- app_assoc.
+            apply MApp.
+              assumption.
+              apply H3.
+  - (* MUnionL *)
+    simpl.
+    intros Hle.
+    assert (Hle': pumping_constant re1 <= length s1) by omega.
+    clear Hle.
+    apply IH in Hle'.
+    destruct Hle' as [w1 [w2 [w3 [H1 [H2 H3]]]]].
+    exists w1, w2, w3.
+      split; try split; try assumption.
+      intros.
+      apply MUnionL.
+      auto.
+  - (* MUnionR *)
+    simpl.
+    intros Hle.
+    assert (Hle': pumping_constant re2 <= length s2) by omega.
+    clear Hle.
+    apply IH in Hle'.
+    destruct Hle' as [w1 [w2 [w3 [H1 [H2 H3]]]]].
+    exists w1, w2, w3.
+      split; try split; try assumption.
+      intros.
+      apply MUnionR.
+      auto.
+  - (* MStar0 *)
+    simpl. intros contra. inversion contra.
+  - (* MStarApp *)
+    simpl in *.
+    intros Hle.
+    destruct s1 as [|s1'].
+    + simpl in *.
+      apply IH2 in Hle.
+      destruct Hle as [w1 [w2 [w3 [H1 [H2 H3]]]]].
+      exists w1, w2, w3.
+        split; try split; try assumption.
+    + simpl in *.
+      exists [], (s1'::s1), s2.
+      split.
+        reflexivity.
+        split.
+          intros contra. inversion contra.
+          intros. simpl.
+          apply pumping_star; assumption.
+Qed.
 
 End Pumping.
 (** [] *)

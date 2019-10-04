@@ -1245,10 +1245,16 @@ Proof. reflexivity. Qed.
 
 Check (mult one).
 
-Definition exp (n m : cnat) : cnat . Admitted. (* TODO *)
+(* Definition exp (n m : cnat) : cnat := m cnat (mult n) one. 
+==> Universe inconsistency
+*)
+
+Definition exp (n m : cnat) : cnat :=
+  fun (X : Type) (f : X -> X) (x : X) =>
+    m X (n X (n X f)) x.
 
 Example exp_1 : exp two two = plus two two.
-Proof. (* FILL IN HERE *) Admitted.
+Proof. simpl. (* FILL IN HERE *) Admitted.
 
 Example exp_2 : exp three zero = one.
 Proof. (* FILL IN HERE *) Admitted.
