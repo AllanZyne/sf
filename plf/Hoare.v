@@ -229,14 +229,20 @@ Notation "{{ P }}  c  {{ Q }}" :=
 
    5) {{X = m}}
       c
-      {{Y = real_fact m}}   
+      {{Y = real_fact m}}
 
    6) {{X = m}}
       c
       {{(Z * Z) <= m /\ ~ (((S Z) * (S Z)) <= m)}}
 *)
 (* FILL IN HERE 
-
+1) If [c] eventually terminate in a state, then this state will satisfy that X = 5
+2) if [c] is started in a state satisfying [X = m], and if [c] eventually 
+   terminates in some final state, then this final state will satisfy [X = m + 5]
+3)
+4) If [c] terminates in some final state, this final state will never satisfy the assertion.
+5)
+6)
     [] *)
 
 (** **** Exercise: 1 star, standard, optional (valid_triples)  
@@ -245,26 +251,27 @@ Notation "{{ P }}  c  {{ Q }}" :=
     claimed relation between [P], [c], and [Q] is true?
 
    1) {{True}} X ::= 5 {{X = 5}}
-
+valid
    2) {{X = 2}} X ::= X + 1 {{X = 3}}
-
+valid
    3) {{True}} X ::= 5;; Y ::= 0 {{X = 5}}
-
+valid
    4) {{X = 2 /\ X = 3}} X ::= 5 {{X = 0}}
-
+invalid
    5) {{True}} SKIP {{False}}
-
+invalid
    6) {{False}} SKIP {{True}}
-
+valid
    7) {{True}} WHILE true DO SKIP END {{False}}
-
+valid
    8) {{X = 0}}
         WHILE X = 0 DO X ::= X + 1 END
       {{X = 1}}
-
+valid
    9) {{X = 1}}
         WHILE ~(X = 0) DO X ::= X + 1 END
       {{X = 100}}
+invalid
 *)
 (* FILL IN HERE 
 
@@ -483,6 +490,20 @@ Proof.
    ...into formal statements (use the names [assn_sub_ex1]
    and [assn_sub_ex2]) and use [hoare_asgn] to prove them. *)
 
+Example assn_sub_ex1 :
+  {{(fun st => st X <= 10) [X |-> 2 * X] }}
+  X ::= 2 * X
+  {{fun st => st X <= 10}}.
+Proof.
+  apply hoare_asgn.  Qed.
+
+Example assn_sub_ex2 :
+  {{(fun st => 0 <= st X /\ st X <= 5) [X |-> 3] }}
+  X ::= 3
+  {{fun st => 0 <= st X /\ st X <= 5}}.
+Proof.
+  apply hoare_asgn.  Qed.
+
 (* FILL IN HERE *)
 
 (* Do not modify the following line: *)
@@ -536,7 +557,25 @@ Theorem hoare_asgn_fwd :
   {{fun st => P (X !-> m ; st)
            /\ st X = aeval (X !-> m ; st) a }}.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold hoare_triple.
+  intros m a P st st' HE [HP Hm].
+  split.
+  - inversion HE. subst.
+    assert ((X !-> st X; X !-> aeval st a; st) = (X !-> st X; st)) by
+      apply t_update_shadow.
+    assert ((X !-> st X; st) = st) by
+      apply t_update_same.
+    rewrite H. rewrite H0.
+    assumption.
+  - inversion HE. subst.
+    assert ((X !-> aeval st a; st) X = aeval st a) by apply t_update_eq.
+    rewrite H. clear H.
+    assert ((X !-> st X; X !-> aeval st a; st) = (X !-> st X; st)) by apply t_update_shadow.
+    rewrite H. clear H.
+    assert ((X !-> st X; st) = st) by apply t_update_same.
+    rewrite H. clear H.
+    reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, advanced, optional (hoare_asgn_fwd_exists)  
@@ -560,7 +599,26 @@ Theorem hoare_asgn_fwd_exists :
                 st X = aeval (X !-> m ; st) a }}.
 Proof.
   intros a P.
-  (* FILL IN HERE *) Admitted.
+  unfold hoare_triple.
+  intros st st' HE HP.
+  exists (st X). (* TODO: use hoare_asgn_fwd *)
+  split.
+  - inversion HE. subst.
+    assert ((X !-> st X; X !-> aeval st a; st) = (X !-> st X; st)) by
+      apply t_update_shadow.
+    assert ((X !-> st X; st) = st) by
+      apply t_update_same.
+    rewrite H. rewrite H0.
+    assumption.
+  - inversion HE. subst.
+    assert ((X !-> aeval st a; st) X = aeval st a) by apply t_update_eq.
+    rewrite H. clear H.
+    assert ((X !-> st X; X !-> aeval st a; st) = (X !-> st X; st)) by apply t_update_shadow.
+    rewrite H. clear H.
+    assert ((X !-> st X; st) = st) by apply t_update_same.
+    rewrite H. clear H.
+    reflexivity.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -814,7 +872,35 @@ Qed.
    [assn_sub_ex2']) and use [hoare_asgn] and [hoare_consequence_pre]
    to prove them. *)
 
-(* FILL IN HERE *)
+Example assn_sub_ex1' :
+  {{fun st => st X + 1 <= 5}}
+  X ::= X + 1
+  {{fun st => st X <= 5 }}.
+Proof.
+  eapply hoare_consequence_pre.
+  apply hoare_asgn.
+  intros st st'.
+  unfold assn_sub.
+  simpl.
+  assert ((X !-> st X + 1; st) X = st X + 1) by apply t_update_eq.
+  rewrite H. clear H.
+  assumption.
+Qed.
+
+Example assn_sub_ex2' :
+  {{fun st => 0 <= 3 /\ 3 <= 5 }}
+  X ::= 3
+  {{fun st => 0 <= st X /\ st X <= 5 }}.
+Proof.
+  eapply hoare_consequence_pre.
+  apply hoare_asgn.
+  intros st H.
+  unfold assn_sub.
+  simpl.
+  assert ((X !-> 3; st) X = 3) by apply t_update_eq.
+  rewrite H0. clear H0.
+  assumption.
+Qed.
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_hoare_asgn_examples_2 : option (nat*string) := None.
