@@ -1777,9 +1777,9 @@ Qed.
 (** Are there any important properties of the function [forallb] which
     are not captured by this specification? *)
 
-(* TODO
-
-    [] *)
+(*
+forallb test l = false <-> ~ (All (fun x => test x = true) l)
+[] *)
 
 (* ================================================================= *)
 (** ** Classical vs. Constructive Logic *)
@@ -1973,36 +1973,21 @@ Definition implies_to_or := forall P Q:Prop,
   (P->Q) -> (~P\/Q).
 
 
-(* 
-Lemma em_peirce: peirce -> excluded_middle.
+(* https://math.stackexchange.com/questions/447098/why-peirces-law-implies-law-of-excluded-middle *)
+Lemma excluded_middle_peirce: peirce -> excluded_middle. 
 Proof.
   unfold peirce.
   unfold excluded_middle.
-  intros PRC P.
-  apply (PRC (P\/~P) P).
-  
+  intros Hpeirce P.
+  apply Hpeirce with False.
   intros H.
   right.
-  intro HP.
-  apply (or_intro P (~P)) in HP.
-  
-  apply H.
-  
-  intros H.
-  exfalso.
-  apply HNNP.
-*)
-
-Lemma em_peirce: excluded_middle -> peirce.
-Proof.
-  unfold excluded_middle.
-  unfold peirce.
-  intros EM P Q H.
-  apply H.
   intros HP.
-  destruct (EM (P->Q)) as [H' | H'].
-  - apply (H' HP).
-  - Admitted. (* TODO *)
+  apply H.
+  left.
+  apply HP.
+Qed.
+
 
 (* FILL IN HERE 
 

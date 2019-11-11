@@ -519,7 +519,7 @@ Proof.
 
     ...to give rise to an induction principle that looks like this...
 
-    ev_ind_max : forall P : (forall n : nat, even n -> Prop), (* TODO *)
+    ev_ind_max : forall P : (forall n : nat, even n -> Prop),
          P O ev_0 ->
          (forall (m : nat) (E : even m),
             P m E ->

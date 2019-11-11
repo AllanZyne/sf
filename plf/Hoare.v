@@ -948,7 +948,7 @@ Proof.
   apply (H2 st st'0); assumption. Qed.
 
 (** Note that, in the formal rule [hoare_seq], the premises are
-    given in backwards order ([c2] before [c1]).  This matches the
+    given in backwards order ([c2] before [c1]).  (!)This matches the
     natural flow of information in many of the situations where we'll
     use the rule, since the natural way to construct a Hoare-logic
     proof is to begin at the end of the program (with the final
@@ -979,7 +979,7 @@ Proof.
     apply hoare_skip.
   - (* left part of seq *)
     eapply hoare_consequence_pre. apply hoare_asgn.
-    intros st H. subst. reflexivity.
+    intros st H. subst. unfold assn_sub. reflexivity.
 Qed.
 
 (** We typically use [hoare_seq] in conjunction with
@@ -1006,7 +1006,31 @@ Example hoare_asgn_example4 :
   X ::= 1;; Y ::= 2
   {{fun st => st X = 1 /\ st Y = 2}}.
 Proof.
-  (* FILL IN HERE *) Admitted.
+(*   eapply hoare_seq with (Q := fun st => st X = 1 /\ 2 = 2). *)
+  eapply hoare_seq.
+  - assert ({{fun st => st X = 1}}
+            Y ::= 2
+            {{fun st : state => st X = 1 /\ st Y = 2}}).
+    {
+      eapply hoare_consequence_pre.
+      - apply hoare_asgn.
+      - intros st H.
+        unfold assn_sub.
+        rewrite t_update_neq; try (intros contra; inversion contra).
+        rewrite t_update_eq.
+        split; auto.
+    }
+    apply H.
+  - eapply hoare_consequence_pre.
+    + assert ({{fun st => 1 = 1}} X ::= 1 {{fun st => st X = 1}}).
+      {
+        eapply hoare_consequence_pre.
+        apply hoare_asgn.
+        intros st H. reflexivity.
+      }
+      apply H.
+    + intros st H. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard (swap_exercise)  
@@ -1022,15 +1046,40 @@ Proof.
     your proof will want to start at the end and work back to the
     beginning of your program.)  *)
 
-Definition swap_program : com
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition swap_program : com :=
+  Z ::= X ;;
+  X ::= Y ;;
+  Y ::= Z.
 
 Theorem swap_exercise :
   {{fun st => st X <= st Y}}
   swap_program
   {{fun st => st Y <= st X}}.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  eapply hoare_seq.
+  - eapply hoare_seq.
+    + apply hoare_asgn.
+    + unfold assn_sub.
+      apply hoare_consequence_post with (fun st => st Z <= st X).
+      * apply hoare_asgn.
+      * intros st st'.
+        rewrite t_update_eq.
+        rewrite t_update_neq; try (intros contra; inversion contra).
+        assumption.
+  - apply hoare_consequence_post with (fun st => st Z <= st Y).
+    + apply hoare_consequence_pre with ((fun st => st Z <= st Y) [Z |-> X]).
+      * apply hoare_asgn.
+      * intros st st'.
+        unfold assn_sub.
+        rewrite t_update_eq.
+        rewrite t_update_neq; try (intros contra; inversion contra).
+        assumption.
+    + intros st st'.
+      unfold assn_sub.
+      rewrite t_update_eq.
+      rewrite t_update_neq; try (intros contra; inversion contra).
+      assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard (hoarestate1)  
@@ -1043,7 +1092,7 @@ Proof.
          {{fun st => st Y = n}}.
 *)
 
-(* FILL IN HERE *)
+(* X in aexp *)
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_hoarestate1 : option (nat*string) := None.
@@ -1180,7 +1229,24 @@ Theorem if_minus_plus :
   FI
   {{fun st => st Y = st X + st Z}}.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  eapply hoare_if.
+  - (* THEN *)
+    eapply hoare_consequence_pre.
+      apply hoare_asgn.
+      unfold assn_sub, assert_implies, t_update, bassn.
+      simpl. intros st [_ H].
+      rewrite leb_iff in H.
+      omega.
+  - (* ELSE *)
+    eapply hoare_consequence_pre.
+      apply hoare_asgn.
+      unfold assn_sub, assert_implies, t_update, bassn.
+      simpl.
+      intros st [_ H].
+      unfold not in H.
+      rewrite leb_iff in H.
+      omega.
+Qed.
 (** [] *)
 
 (* ----------------------------------------------------------------- *)
@@ -1258,7 +1324,13 @@ Inductive ceval : com -> state -> state -> Prop :=
       st  =[ c ]=> st' ->
       st' =[ WHILE b DO c END ]=> st'' ->
       st  =[ WHILE b DO c END ]=> st''
-(* FILL IN HERE *)
+  | E_If1True : forall b st st' c,
+      beval st b = true ->
+      st  =[ c ]=> st' ->
+      st =[ IF1 b THEN c FI ]=> st'
+  | E_If1False : forall b st c,
+      beval st b = false ->
+      st =[ IF1 b THEN c FI ]=> st
 
   where "st '=[' c ']=>' st'" := (ceval c st st').
 Close Scope imp_scope.
@@ -1281,7 +1353,26 @@ Notation "{{ P }}  c  {{ Q }}" := (hoare_triple P c Q)
     for one-sided conditionals. Try to come up with a rule that is
     both sound and as precise as possible. *)
 
-(* FILL IN HERE *)
+Theorem hoare_if1 : forall P Q b c,
+  {{fun st => P st /\ bassn b st}} c {{Q}} ->
+  (fun st => P st /\ ~(bassn b st)) ->> Q ->
+  {{P}} (IF1 b THEN c FI)%imp {{Q}}.
+Proof.
+  intros P Q b c HTrue HFalse st st' HE HP.
+  inversion HE; subst.
+  - (* b is true *)
+    apply (HTrue st st').
+      assumption.
+      split. assumption.
+      apply bexp_eval_true. assumption.
+  - (* b is false *)
+    apply HFalse.
+      split.
+      assumption.
+      intros contra.
+      unfold bassn in contra.
+      rewrite H3 in contra.
+      inversion contra.  Qed.
 
 (** For full credit, prove formally [hoare_if1_good] that your rule is
     precise enough to show the following valid Hoare triple:
@@ -1297,13 +1388,43 @@ Notation "{{ P }}  c  {{ Q }}" := (hoare_triple P c Q)
     rules also. Because we're working in a separate module, you'll
     need to copy here the rules you find necessary. *)
 
+Theorem hoare_consequence_pre : forall (P P' Q : Assertion) c,
+  {{P'}} c {{Q}} ->
+  P ->> P' ->
+  {{P}} c {{Q}}.
+Proof.
+  intros P P' Q c Hhoare Himp.
+  intros st st' Hc HP. apply (Hhoare st st').
+  assumption. apply Himp. assumption. Qed.
+
+Theorem hoare_asgn : forall Q X a,
+  {{Q [X |-> a]}} (X ::= a)%imp {{Q}}.
+Proof.
+  unfold hoare_triple.
+  intros Q X a st st' HE HQ.
+  inversion HE. subst.
+  unfold assn_sub in HQ. assumption.  Qed.
+
 Lemma hoare_if1_good :
   {{ fun st => st X + st Y = st Z }}
   (IF1 ~(Y = 0) THEN
     X ::= X + Y
   FI)%imp
   {{ fun st => st X = st Z }}.
-Proof. (* FILL IN HERE *) Admitted.
+Proof.
+  apply hoare_if1.
+  - eapply hoare_consequence_pre.
+      apply hoare_asgn.
+      unfold assn_sub, assert_implies, t_update, bassn.
+      simpl. intros st [Hxyz Hny].
+      assumption.
+  - intros st [H Hb].
+    unfold bassn, not in Hb.
+    simpl in Hb.
+    destruct (st Y).
+      rewrite <- plus_n_O in H. assumption.
+      exfalso. apply Hb. simpl. reflexivity.
+Qed.
 
 End If1.
 
@@ -1457,7 +1578,7 @@ Proof.
     terminate (without proving that they do) are often said to
     describe a logic of "partial" correctness.  It is also possible to
     give Hoare rules for "total" correctness, which build in the fact
-    that the commands terminate. However, in this course we will only
+    that the commands terminate.(?) However, in this course we will only
     talk about partial correctness. *)
 
 (* ----------------------------------------------------------------- *)
@@ -1533,7 +1654,15 @@ Inductive ceval : state -> com -> state -> Prop :=
       st  =[ c ]=> st' ->
       st' =[ WHILE b DO c END ]=> st'' ->
       st  =[ WHILE b DO c END ]=> st''
-(* FILL IN HERE *)
+  | E_RepeatLoop : forall st st' st'' b c,
+      st  =[ c ]=> st' ->
+      beval st' b = false ->
+      st' =[ REPEAT c UNTIL b END ]=> st'' ->
+      st  =[ REPEAT c UNTIL b END ]=> st''
+  | E_RepeatEnd : forall b st st' c,
+      st =[ c ]=> st' ->
+      beval st' b = true ->
+      st =[ REPEAT c UNTIL b END ]=> st'
 
 where "st '=[' c ']=>' st'" := (ceval st c st').
 
@@ -1559,13 +1688,56 @@ Definition ex1_repeat :=
 Theorem ex1_repeat_works :
   empty_st =[ ex1_repeat ]=> (Y !-> 1 ; X !-> 1).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply E_RepeatEnd.
+  eapply E_Seq.
+  apply E_Ass.
+  reflexivity.
+  apply E_Ass.
+  reflexivity.
+  reflexivity.
+Qed.
 
 (** Now state and prove a theorem, [hoare_repeat], that expresses an
     appropriate proof rule for [repeat] commands.  Use [hoare_while]
     as a model, and try to make your rule as precise as possible. *)
 
-(* FILL IN HERE *)
+
+Theorem hoare_consequence_pre : forall (P P' Q : Assertion) c,
+  {{P'}} c {{Q}} ->
+  P ->> P' ->
+  {{P}} c {{Q}}.
+Proof.
+  intros P P' Q c Hhoare Himp.
+  intros st st' Hc HP. apply (Hhoare st st').
+  assumption. apply Himp. assumption. Qed.
+
+Theorem hoare_consequence_post : forall (P Q Q' : Assertion) c,
+  {{P}} c {{Q'}} ->
+  Q' ->> Q ->
+  {{P}} c {{Q}}.
+Proof.
+  intros P Q Q' c Hhoare Himp.
+  intros st st' Hc HP.
+  apply Himp.
+  apply (Hhoare st st').
+  assumption. assumption. Qed.
+
+Theorem hoare_seq : forall P Q R c1 c2,
+     {{Q}} c2 {{R}} ->
+     {{P}} c1 {{Q}} ->
+     {{P}} c1;;c2 {{R}}.
+Proof.
+  intros P Q R c1 c2 H1 H2 st st' H12 Pre.
+  inversion H12; subst.
+  apply (H1 st'0 st'); try assumption.
+  apply (H2 st st'0); assumption. Qed.
+
+
+Theorem hoare_repeat : forall P Q b c,
+  {{P}} c {{Q}} ->
+  {{P}} REPEAT c UNTIL b END {{fun st => Q st /\ bassn b st}}.
+Proof.
+Admitted.
 
 (** For full credit, make sure (informally) that your rule can be used
     to prove the following valid Hoare triple:
@@ -1577,6 +1749,22 @@ Proof.
   UNTIL X = 0 END
   {{ X = 0 /\ Y > 0 }}
 *)
+Example while_example :
+    {{fun st => st X > 0}}
+  REPEAT
+    Y ::= X;;
+    X ::= X - 1
+  UNTIL X = 0 END
+    {{fun st => st X = 0 /\ st Y > 0}}.
+Proof.
+(*   eapply hoare_consequence_post.
+  apply hoare_repeat.
+  apply hoare_seq with (Q := fun st : state => st X > 0 /\ st Y > 0).
+  eapply hoare_consequence_pre.
+  apply (hoare_asgn (fun st : state => st X > 0 /\ st Y > 0)).
+   *)
+Admitted.
+
 
 End RepeatExercise.
 
@@ -1699,6 +1887,7 @@ Notation "{{ P }}  c  {{ Q }}" := (hoare_triple P c Q)
     [havoc_pre] and prove that the resulting rule is correct. *)
 
 Definition havoc_pre (X : string) (Q : Assertion) : Assertion
+:= fun st => fun n => Q (st X) n.
   (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
 
 Theorem hoare_havoc : forall (Q : Assertion) (X : string),
