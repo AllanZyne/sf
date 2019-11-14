@@ -504,7 +504,6 @@ Example assn_sub_ex2 :
 Proof.
   apply hoare_asgn.  Qed.
 
-(* FILL IN HERE *)
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_hoare_asgn_examples : option (nat*string) := None.
@@ -526,7 +525,7 @@ Definition manual_grade_for_hoare_asgn_examples : option (nat*string) := None.
     [a], and your counterexample needs to exhibit an [a] for which
     the rule doesn't work.) *)
 
-(* FILL IN HERE *)
+(* {{ True }} X ::= X + 1 {{ X = X + 1 }} *)
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_hoare_asgn_wrong : option (nat*string) := None.
@@ -1722,6 +1721,21 @@ Proof.
   apply (Hhoare st st').
   assumption. assumption. Qed.
 
+Definition assn_sub X a P : Assertion :=
+  fun (st : state) =>
+    P (X !-> aeval st a ; st).
+
+Notation "P [ X |-> a ]" := (assn_sub X a P)
+(at level 10, X at next level).
+
+Theorem hoare_asgn : forall Q X a,
+  {{Q [X |-> a]}} X ::= a {{Q}}.
+Proof.
+  unfold hoare_triple.
+  intros Q X a st st' HE HQ.
+  inversion HE. subst.
+  unfold assn_sub in HQ. assumption.  Qed.
+
 Theorem hoare_seq : forall P Q R c1 c2,
      {{Q}} c2 {{R}} ->
      {{P}} c1 {{Q}} ->
@@ -1732,11 +1746,17 @@ Proof.
   apply (H1 st'0 st'); try assumption.
   apply (H2 st st'0); assumption. Qed.
 
-
 Theorem hoare_repeat : forall P Q b c,
   {{P}} c {{Q}} ->
   {{P}} REPEAT c UNTIL b END {{fun st => Q st /\ bassn b st}}.
 Proof.
+  intros P Q b c Hhoare st st' He HP.
+  remember (REPEAT c UNTIL b END) as rcom eqn:Heqrcom.
+  induction He;
+    try (inversion Heqrcom); subst; clear Heqrcom.
+  - (* E_RepeatLoop *)
+    
+  
 Admitted.
 
 (** For full credit, make sure (informally) that your rule can be used
@@ -1757,14 +1777,29 @@ Example while_example :
   UNTIL X = 0 END
     {{fun st => st X = 0 /\ st Y > 0}}.
 Proof.
-(*   eapply hoare_consequence_post.
+  eapply hoare_consequence_post.
   apply hoare_repeat.
-  apply hoare_seq with (Q := fun st : state => st X > 0 /\ st Y > 0).
+  apply (hoare_seq _ (fun st : state => st X > 0 /\ st Y > 0) (fun st : state => st X >= 0 /\ st Y > 0)).
+  (* apply hoare_consequence_post with (fun st : state => st X >= 0 /\ st Y > 0). *)
   eapply hoare_consequence_pre.
-  apply (hoare_asgn (fun st : state => st X > 0 /\ st Y > 0)).
-   *)
-Admitted.
-
+  apply hoare_asgn.
+  intros st [HX HY].
+  unfold assn_sub, t_update.
+  split; simpl.
+  omega.
+  assumption.
+  eapply hoare_consequence_pre.
+  apply hoare_asgn.
+  intros st H.
+  unfold assn_sub, t_update.
+  simpl.
+  split; assumption.
+  intros st [[_ HY] HBX].
+  unfold bassn in HBX.
+  simpl in HBX.
+  apply eqb_eq in HBX.
+  split; assumption.
+Qed.
 
 End RepeatExercise.
 
