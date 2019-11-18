@@ -1700,7 +1700,6 @@ Qed.
     appropriate proof rule for [repeat] commands.  Use [hoare_while]
     as a model, and try to make your rule as precise as possible. *)
 
-
 Theorem hoare_consequence_pre : forall (P P' Q : Assertion) c,
   {{P'}} c {{Q}} ->
   P ->> P' ->
@@ -1721,6 +1720,17 @@ Proof.
   apply (Hhoare st st').
   assumption. assumption. Qed.
 
+Theorem hoare_consequence : forall (P P' Q Q' : Assertion) c,
+  {{P'}} c {{Q'}} ->
+  P ->> P' ->
+  Q' ->> Q ->
+  {{P}} c {{Q}}.
+Proof.
+  intros P P' Q Q' c Hht HPP' HQ'Q.
+  apply hoare_consequence_pre with (P' := P').
+  apply hoare_consequence_post with (Q' := Q').
+  assumption. assumption. assumption.  Qed.
+
 Definition assn_sub X a P : Assertion :=
   fun (st : state) =>
     P (X !-> aeval st a ; st).
@@ -1737,27 +1747,48 @@ Proof.
   unfold assn_sub in HQ. assumption.  Qed.
 
 Theorem hoare_seq : forall P Q R c1 c2,
-     {{Q}} c2 {{R}} ->
-     {{P}} c1 {{Q}} ->
-     {{P}} c1;;c2 {{R}}.
+  {{Q}} c2 {{R}} ->
+  {{P}} c1 {{Q}} ->
+  {{P}} c1;;c2 {{R}}.
 Proof.
   intros P Q R c1 c2 H1 H2 st st' H12 Pre.
   inversion H12; subst.
   apply (H1 st'0 st'); try assumption.
   apply (H2 st st'0); assumption. Qed.
 
+Definition assert_implies (P Q : Assertion) : Prop :=
+  forall st, P st -> Q st.
+
+Notation "P ->> Q" := (assert_implies P Q)
+                      (at level 80).
+
 Theorem hoare_repeat : forall P Q b c,
-  {{P}} c {{Q}} ->
-  {{P}} REPEAT c UNTIL b END {{fun st => Q st /\ bassn b st}}.
+  {{fun st => P st /\ ~(bassn b st)}} c {{Q}} ->
+  Q ->> P ->
+  {{fun st => P st /\ ~(bassn b st)}} REPEAT c UNTIL b END {{fun st => Q st /\ bassn b st}}.
 Proof.
-  intros P Q b c Hhoare st st' He HP.
+  intros P Q b c Hhoare Himp st st' He [HP Hb].
   remember (REPEAT c UNTIL b END) as rcom eqn:Heqrcom.
   induction He;
     try (inversion Heqrcom); subst; clear Heqrcom.
   - (* E_RepeatLoop *)
-    
-  
-Admitted.
+    apply IHHe2.
+    + reflexivity.
+    + apply Himp.
+      apply Hhoare in He1.
+      apply He1.
+      split; assumption.
+    + intros contra.
+      unfold bassn in contra.
+      rewrite H in contra.
+      inversion contra.
+  - (* E_RepeatEnd *)
+    split.
+    + apply Hhoare in He.
+      apply He.
+      split; assumption.
+    + unfold bassn. assumption.
+Qed.
 
 (** For full credit, make sure (informally) that your rule can be used
     to prove the following valid Hoare triple:
@@ -1769,7 +1800,7 @@ Admitted.
   UNTIL X = 0 END
   {{ X = 0 /\ Y > 0 }}
 *)
-Example while_example :
+Example repeat_example :
     {{fun st => st X > 0}}
   REPEAT
     Y ::= X;;
@@ -1777,28 +1808,34 @@ Example while_example :
   UNTIL X = 0 END
     {{fun st => st X = 0 /\ st Y > 0}}.
 Proof.
-  eapply hoare_consequence_post.
-  apply hoare_repeat.
-  apply (hoare_seq _ (fun st : state => st X > 0 /\ st Y > 0) (fun st : state => st X >= 0 /\ st Y > 0)).
-  (* apply hoare_consequence_post with (fun st : state => st X >= 0 /\ st Y > 0). *)
-  eapply hoare_consequence_pre.
-  apply hoare_asgn.
-  intros st [HX HY].
-  unfold assn_sub, t_update.
-  split; simpl.
-  omega.
-  assumption.
-  eapply hoare_consequence_pre.
-  apply hoare_asgn.
-  intros st H.
-  unfold assn_sub, t_update.
-  simpl.
-  split; assumption.
-  intros st [[_ HY] HBX].
-  unfold bassn in HBX.
-  simpl in HBX.
-  apply eqb_eq in HBX.
-  split; assumption.
+  eapply hoare_consequence.
+  - apply (hoare_repeat (fun st => st X >= 0) (fun st => st X >= 0 /\ st Y = st X + 1)).
+    eapply hoare_seq.
+    + apply hoare_asgn.
+    + eapply hoare_consequence_pre.
+      apply hoare_asgn.
+      intros st [H Hnb].
+      unfold assn_sub, t_update.
+      simpl.
+      unfold bassn in Hnb.
+      simpl in Hnb.
+      rewrite not_true_iff_false in Hnb.
+      rewrite eqb_neq in Hnb.
+      assert (Hx: st X > 0) by omega.
+      omega.
+    + intros st [H _].
+      assumption.
+  - intros st H.
+    unfold bassn.
+    rewrite not_true_iff_false.
+    simpl.
+    rewrite eqb_neq.
+    omega.
+  - intros st [[Hx Hy] Hb].
+    unfold bassn in Hb.
+    simpl in Hb.
+    rewrite eqb_eq in Hb.
+    omega.
 Qed.
 
 End RepeatExercise.
@@ -1921,9 +1958,8 @@ Notation "{{ P }}  c  {{ Q }}" := (hoare_triple P c Q)
 (** Complete the Hoare rule for [HAVOC] commands below by defining
     [havoc_pre] and prove that the resulting rule is correct. *)
 
-Definition havoc_pre (X : string) (Q : Assertion) : Assertion
-:= fun st => fun n => Q (st X) n.
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Definition havoc_pre (X : string) (Q : Assertion) : Assertion :=
+  fun st => Q (X !-> st X; st).
 
 Theorem hoare_havoc : forall (Q : Assertion) (X : string),
   {{ havoc_pre X Q }} HAVOC X {{ Q }}.
@@ -2192,7 +2228,7 @@ Example assert_assume_example:
   ASSERT (X = 2)
   {{fun st => True}}.
 Proof.
-(* FILL IN HERE *) Admitted.
+(* FIL IN HERE *) Admitted.
 
 End HoareAssertAssume.
 (** [] *)
