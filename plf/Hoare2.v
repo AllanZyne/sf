@@ -25,7 +25,7 @@ From PLF Require Import Imp.
     Such a _decorated program_ carries within it an argument for its
     own correctness. *)
 
-(** For example, consider the program: 
+(** For example, consider the program:
 
     X ::= m;;
     Z ::= p;
@@ -255,15 +255,15 @@ These decorations were constructed as follows:
 
        {{ True }}
       TEST X <= Y THEN
-          {{                         }} ->>
-          {{                         }}
+          {{ True /\ X <= Y          }} ->>
+          {{ Y = X + (Y - X)         }}
         Z ::= Y - X
-          {{                         }}
+          {{ Y = X + Z               }}
       ELSE
-          {{                         }} ->>
-          {{                         }}
+          {{ True /\ ~(X <= Y)       }} ->>
+          {{ X + Z = X + Z           }}
         Y ::= X + Z
-          {{                         }}
+          {{ Y = X + Z               }}
       FI
         {{ Y = X + Z }}
 *)
@@ -570,7 +570,22 @@ Proof.
     Write an informal decorated program showing that this procedure
     is correct. *)
 
-(* FILL IN HERE *)
+(*
+        {{ X = m }} ->>
+        {{ X + 0 = m }}
+      Y ::= 0;;
+        {{ X + Y = m }}
+      WHILE ~(X = 0) DO
+        {{ X + Y = m /\ X <> 0 }} ->>
+        {{ (X - 1) + (Y + 1) = m }}
+        X ::= X - 1;;
+        {{ X + (Y + 1) = m }}
+        Y ::= Y + 1
+        {{ X + Y = m }}
+      END
+        {{ X + Y = m /\ X = 0}} ->>
+        {{ Y = m }}
+*)
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_decorations_in_slow_assignment : option (nat*string) := None.
@@ -594,7 +609,19 @@ Definition manual_grade_for_decorations_in_slow_assignment : option (nat*string)
     specification of [add_slowly]; then (informally) decorate the
     program accordingly. *)
 
-(* FILL IN HERE 
+(*
+        {{ X = m /\ Z = n }} ->>
+        {{ X + Z = m + n }}
+      WHILE ~(X = 0) DO
+        {{ X + Z = m + n /\ X <> 0 }} ->>
+        {{ (X - 1) + (Z + 1) = m + n }}
+         Z ::= Z + 1;;
+        {{ (X - 1) + Z = m + n }}
+         X ::= X - 1
+        {{ X + Z = m + n }}
+      END
+        {{ X + Z = m + n /\ X = 0 }} ->>
+        {{ Z = m + n }}
 
     [] *)
 
@@ -676,7 +703,30 @@ Theorem parity_correct : forall m,
   END
     {{ fun st => st X = parity m }}.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros m.
+  eapply hoare_consequence.
+  apply hoare_while with (P := fun st => parity (st X) = parity m).
+  - eapply hoare_consequence_pre.
+    apply hoare_asgn.
+    intros st [Hp Hb].
+    unfold assn_sub, t_update.
+    simpl.
+    unfold bassn, beval, aeval in Hb.
+    rewrite leb_le in Hb.
+    rewrite <- Hp.
+    apply parity_ge_2.
+    apply Hb.
+  - intros st H.
+    rewrite H.
+    reflexivity.
+  - intros st [Hp Hnb].
+    unfold bassn, beval, aeval in Hnb.
+    rewrite leb_le in Hnb.
+    rewrite <- Hp.
+    symmetry.
+    apply parity_lt_2.
+    apply Hnb.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -774,7 +824,7 @@ Proof.
     Z ::= 0;;
       {{ Z = m*m /\ X = m }}
     WHILE ~(Y = X) DO
-        {{ Z = Y*m /\ X = m /\ Y <> X }} ->>     (c - WRONG)
+        {{ Z = m*m /\ X = m /\ Y <> X }} ->>     (c - WRONG)
         {{ Z+X = m*m /\ X = m }}
       Z ::= Z + X;;
         {{ Z = m*m /\ X = m }}
@@ -842,18 +892,18 @@ Proof.
     well-defined on natural numbers.
 
     {{ X = m }} ->>
-    {{                                      }}
+    {{ 1 * X! = m!                             }}
   Y ::= 1;;
-    {{                                      }}
+    {{ Y * X! = m!                             }}
   WHILE ~(X = 0)
-  DO   {{                                      }} ->>
-       {{                                      }}
+  DO   {{ Y * X! = m! /\ X <> 0                }} ->>
+       {{ (Y * X) * (X - 1)! = m!              }}
      Y ::= Y * X;;
-       {{                                      }}
+       {{ Y * (X - 1)! = m!                    }}
      X ::= X - 1
-       {{                                      }}
+       {{ Y * X! = m!                          }}
   END
-    {{                                      }} ->>
+    {{ Y * X! = m! /\ X = 0                    }} ->>
     {{ Y = m! }}
 *)
 
@@ -886,24 +936,24 @@ Definition manual_grade_for_decorations_in_factorial : option (nat*string) := No
   plus standard high-school algebra, as always.
 
   {{ True }} ->>
-  {{                    }}
+  {{ 0 = min a b - min a b                      }}
   X ::= a;;
-  {{                       }}
+  {{ 0 = min a b - min X b                      }}
   Y ::= b;;
-  {{                       }}
+  {{ 0 = min a b - min X Y                      }}
   Z ::= 0;;
-  {{                       }}
+  {{ Z = min a b + min X Y                      }}
   WHILE ~(X = 0) && ~(Y = 0) DO
-  {{                                     }} ->>
-  {{                                }}
+  {{ Z = min a b - min X Y /\ X <> 0 /\ Y <> 0  }} ->>
+  {{ Z + 1 = min a b - min (X - 1) (Y - 1)      }}
   X := X - 1;;
-  {{                            }}
+  {{ Z + 1 = min a b - min X (Y - 1)            }}
   Y := Y - 1;;
-  {{                        }}
+  {{ Z + 1 = min a b - min X Y                  }}
   Z := Z + 1
-  {{                       }}
+  {{ Z = min a b - min X Y                      }}
   END
-  {{                            }} ->>
+  {{ Z = min a b - min X Y /\ X = 0 /\ Y = 0    }} ->>
   {{ Z = min a b }}
 *)
 
@@ -931,32 +981,32 @@ Definition manual_grade_for_decorations_in_Min_Hoare : option (nat*string) := No
     following decorated program.
 
       {{ True }} ->>
-      {{                                        }}
+      {{ c = 0 + 0 + c                          }}
     X ::= 0;;
-      {{                                        }}
+      {{ c = X + 0 + c                          }}
     Y ::= 0;;
-      {{                                        }}
+      {{ c = X + Y + c                          }}
     Z ::= c;;
-      {{                                        }}
+      {{ Z = X + Y + c                          }}
     WHILE ~(X = a) DO
-        {{                                        }} ->>
-        {{                                        }}
+        {{ Z = X + Y + c /\ X <> a              }} ->>
+        {{ Z + 1 = (X + 1) + Y + c              }}
       X ::= X + 1;;
-        {{                                        }}
+        {{ Z + 1 = X + Y + c                    }}
       Z ::= Z + 1
-        {{                                        }}
+        {{ Z = X + Y + c                        }}
     END;;
-      {{                                        }} ->>
-      {{                                        }}
+      {{ Z = X + Y + c /\ X = a                 }} ->>
+      {{ Z = a + Y + c                          }}
     WHILE ~(Y = b) DO
-        {{                                        }} ->>
-        {{                                        }}
+        {{ Z = a + Y + c /\ Y <> b              }} ->>
+        {{ Z + 1 = a + (Y + 1) + c              }}
       Y ::= Y + 1;;
-        {{                                        }}
+        {{ Z + 1 = a + Y + c                    }}
       Z ::= Z + 1
-        {{                                        }}
+        {{ Z = a + Y + c                        }}
     END
-      {{                                        }} ->>
+      {{ Z = a + Y + c /\ Y = b                 }} ->>
       {{ Z = a + b + c }}
 *)
 
@@ -983,7 +1033,27 @@ Definition manual_grade_for_decorations_in_two_loops : option (nat*string) := No
 
     Write a decorated program for this. *)
 
-(* FILL IN HERE 
+(*
+    {{ True }} ->>
+    {{ 1 = 2^(0+1)-1 /\ 1 = 2^0 }}
+    X ::= 0;;
+    {{ 1 = 2^(X+1)-1 /\ 1 = 2^X }}
+    Y ::= 1;;
+    {{ Y = 2^(X+1)-1 /\ 1 = 2^X }}
+    Z ::= 1;;
+    {{ Y = 2^(X+1)-1 /\ Z = 2^X }}
+    WHILE ~(X = m) DO
+      {{ Y = 2^(X+1)-1 /\ Z = 2^X /\ X <> m }} ->>
+      {{ Y + (2*Z) = 2^((X+1)+1)-1 /\ 2*Z = 2^(X+1) }}
+      Z ::= 2 * Z;;
+      {{ Y + Z = 2^((X+1)+1)-1 /\ Z = 2^(X+1) }}
+      Y ::= Y + Z;;
+      {{ Y = 2^((X+1)+1)-1 /\ Z = 2^(X+1) }}
+      X ::= X + 1
+      {{ Y = 2^(X+1)-1 /\ Z = 2^X }}
+    END
+    {{ Y = 2^(X+1)-1 /\ Z = 2^X /\ X = m }} ->>
+    {{ Y = 2^(m+1)-1 }}
 
     [] *)
 
