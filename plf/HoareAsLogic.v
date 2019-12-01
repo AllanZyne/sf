@@ -79,6 +79,9 @@ Example sample_proof :
     (X ::= X + 1;; X ::= X + 2)
     (fun st:state => st X = 3).
 Proof.
+  (* eapply H_Seq. *)
+  (* apply H_Asgn. *)
+  (* apply H_Asgn. *)
   eapply H_Seq; apply H_Asgn.
 Qed.
 
@@ -107,10 +110,19 @@ Print sample_proof.
 
     Prove that such proof objects represent true claims. *)
 
+Hint Resolve hoare_skip.
+Hint Resolve hoare_asgn.
+Hint Resolve hoare_seq.
+Hint Resolve hoare_if.
+Hint Resolve hoare_while.
+Hint Resolve hoare_consequence.
+
 Theorem hoare_proof_sound : forall P c Q,
   hoare_proof P c Q -> {{P}} c {{Q}}.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction X; eauto.
+Qed.
 (** [] *)
 
 (** We can also use Coq's reasoning facilities to prove metatheorems

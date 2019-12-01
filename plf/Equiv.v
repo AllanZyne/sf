@@ -1516,8 +1516,20 @@ Theorem subst_equiv : forall x1 x2 a1 a2,
          (x1 ::= a1;; x2 ::= subst_aexp x1 a1 a2).
 Proof.
   intros x1 x2 a1 a2 Hvnu st st'.
-  split; intros H1.
-  - Admitted.
+  split; intros H.
+  - inversion H; subst.
+    eapply E_Seq.
+    apply H2.
+    inversion H5; subst.
+    apply E_Ass.
+    admit.
+  - inversion H; subst.
+    eapply E_Seq.
+    apply H2.
+    inversion H5; subst.
+    apply E_Ass.
+    admit.
+Admitted.
 (* FILL IN HERE 
 
     [] *)
@@ -1531,12 +1543,16 @@ Theorem inequiv_exercise:
 Proof.
   unfold cequiv.
   intros Contra.
+  remember empty_st as st.
+  assert (st =[ SKIP ]=> st)%imp by apply E_Skip.
+  apply Contra in H.
   assert (forall st, ~(st =[ WHILE true DO SKIP END ]=> st))%imp. {
-    intros st.
-    apply (loop_never_stops st st).
+    intros st'.
+    apply (loop_never_stops st' st').
   }
-
-  (* FILL IN HERE *) Admitted.
+  apply (H0 st).
+  apply H.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -1695,17 +1711,34 @@ Theorem pXY_cequiv_pYX :
 Proof.
   left.
   unfold pXY, pYX.
-  intros st st'.
   split; intros H.
   - inversion H; subst.
-    clear H.
-    
     inversion H2; subst.
     inversion H5; subst.
-    apply E_Seq with (Y !-> n0; st).
-    + inversion H5; subst.
-  
-(* FILL IN HERE *) Admitted.
+    eapply E_Seq.
+    apply (E_Havoc _ n0).
+    assert ((Y !-> n0; X !-> n; st) = (X !-> n; Y !-> n0; st)).
+    {
+      apply t_update_permute.
+      apply eqb_string_false_iff.
+      reflexivity.
+    }
+    rewrite H0.
+    apply E_Havoc.
+  - inversion H; subst.
+    inversion H2; subst.
+    inversion H5; subst.
+    eapply E_Seq.
+    apply (E_Havoc _ n0).
+    assert ((X !-> n0; Y !-> n; st) = (Y !-> n; X !-> n0; st)).
+    {
+      apply t_update_permute.
+      apply eqb_string_false_iff.
+      reflexivity.
+    }
+    rewrite H0.
+    apply E_Havoc.
+Qed. 
 (** [] *)
 
 (** **** Exercise: 4 stars, standard, optional (havoc_copy)  

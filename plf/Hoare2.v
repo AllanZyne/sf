@@ -1124,7 +1124,24 @@ Definition is_wp P c Q :=
      WHILE true DO X ::= 0 END
      {{ X = 0 }}
 *)
-(* FILL IN HERE 
+(*
+  1) {{ X = 5 }}  SKIP  {{ X = 5 }}
+
+  2) {{ 5 = Y + Z }}  X ::= Y + Z {{ X = 5 }}
+
+  3) {{ True }}  X ::= Y  {{ X = Y }}
+
+  4) {{ (X = 0 /\ Z = 4) \/ (X <> 0 /\ W = 3) }}
+     TEST X = 0 THEN Y ::= Z + 1 ELSE Y ::= W + 2 FI
+     {{ Y = 5 }}
+
+  5) {{ False }}
+     X ::= 5
+     {{ X = 0 }}
+
+  6) {{ True }}
+     WHILE true DO X ::= 0 END
+     {{ X = 0 }}
 
     [] *)
 
@@ -1138,6 +1155,15 @@ Theorem is_wp_example :
   is_wp (fun st => st Y <= 4)
     (X ::= Y + 1) (fun st => st X <= 5).
 Proof.
+  unfold is_wp.
+  split.
+  - eapply hoare_consequence_pre.
+    apply hoare_asgn.
+    intros st H.
+    unfold assn_sub, t_update.
+    simpl.
+    omega.
+  - 
   (* FILL IN HERE *) Admitted.
 (** [] *)
 
@@ -1149,6 +1175,11 @@ Proof.
 Theorem hoare_asgn_weakest : forall Q X a,
   is_wp (Q [X |-> a]) (X ::= a) Q.
 Proof.
+  intros Q X a.
+  unfold is_wp.
+  split.
+  - apply hoare_asgn.
+  - 
 (* FILL IN HERE *) Admitted.
 (** [] *)
 
@@ -1256,15 +1287,16 @@ Set Printing All.
     of the program. *)
 
 Example dec_while : decorated :=
-  {{ fun st => True }} 
-  WHILE ~(X = 0)
+  {{ fun st => True }} (* P1 *)
+  WHILE ~(X = 0)  (* D *)
   DO
     {{ fun st => True /\ st X <> 0}}
     X ::= X - 1
     {{ fun _ => True }}
   END
   {{ fun st => True /\ st X = 0}} ->>
-  {{ fun st => st X = 0 }}.
+  {{ fun st => st X = 0 }}. (* P2 *)
+(* Decorated P1 (DCPost D P2) *)
 
 (** It is easy to go from a [dcom] to a [com] by erasing all
     annotations. *)
@@ -1331,10 +1363,10 @@ Definition pre_dec (dec : decorated) : Assertion :=
 Definition post_dec (dec : decorated) : Assertion :=
   match dec with
   | Decorated P d => post d
-  end.
-
-(** We can express what it means for a decorated program to be
-    correct as follows: *)
+  end.    
+  
+  (** We can express what it means for a decorated program to be
+    correct as follows: *)            
 
 Definition dec_correct (dec : decorated) :=
   {{pre_dec dec}} (extract_dec dec) {{post_dec dec}}.
