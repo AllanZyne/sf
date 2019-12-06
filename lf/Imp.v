@@ -1723,13 +1723,12 @@ Close Scope imp_scope.
 Inductive no_whilesR: com -> Prop :=
   | NW_Skip : no_whilesR SKIP
   | NW_Ass (x : string) (a : aexp) : no_whilesR (x ::= a)
-  | NW_Seq (c1 : com) (c2 : com) 
-          (H1: no_whilesR c1) (H2 : no_whilesR c2) 
+  | NW_Seq (c1 : com) (c2 : com)
+          (H1: no_whilesR c1) (H2 : no_whilesR c2)
           : no_whilesR (c1 ;; c2)
-  | NW_If (b : bexp) (ct : com) (cf : com) 
-           (H1 : no_whilesR ct) (H1 : no_whilesR cf) 
-           : no_whilesR (TEST b THEN ct ELSE cf FI)
-.
+  | NW_If (b : bexp) (ct : com) (cf : com)
+           (H1 : no_whilesR ct) (H2 : no_whilesR cf)
+           : no_whilesR (TEST b THEN ct ELSE cf FI).
 
 Theorem no_whiles_eqv:
    forall c, no_whiles c = true <-> no_whilesR c.
@@ -1781,16 +1780,29 @@ Qed.
     Use either [no_whiles] or [no_whilesR], as you prefer. *)
 
 Theorem no_whiles_terminating : forall c, 
-  no_whilesR c -> exists st st', st =[ c ]=> st'.
+  no_whilesR c -> forall st, exists st', st =[ c ]=> st'.
 Proof.
-  intros.
-  induction H.
-  - exists empty_st.
-    exists empty_st.
+  intros c H.
+  induction H; intros st.
+  - exists st.
     constructor.
-  - exists empty_st.
-    Admitted.
-(* FILL IN HERE *)
+  - exists (x !-> aeval st a; st).
+    apply E_Ass.
+    reflexivity.
+  - destruct (IHno_whilesR1 st) as [st' IHc1].
+    destruct (IHno_whilesR2 st') as [st'' IHc2].
+    exists st''.
+    apply E_Seq with (st' := st'); assumption.
+  - destruct (IHno_whilesR1 st) as [st' IHc1].
+    destruct (IHno_whilesR2 st) as [st'' IHc2].
+    destruct (beval st b) eqn:Ebeval.
+    + exists st'.
+      apply E_IfTrue;
+        assumption.
+    + exists st''.
+      apply E_IfFalse;
+        assumption.
+Qed.
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_no_whiles_terminating : option (nat*string) := None.
