@@ -622,6 +622,7 @@ Proof.
 
 (* ================================================================= *)
 (** ** Behavioral Equivalence Is a Congruence *)
+(* congruence: similar, accordance *)
 
 (** Less obviously, behavioral equivalence is also a _congruence_.
     That is, the equivalence of two subprograms implies the
@@ -827,6 +828,37 @@ Qed.
     that is an equivalence but _not_ a congruence? *)
 
 (* FILL IN HERE (?)
+
+_equivalence_ :=
+
+cequiv c1 c2 
+  forall (st st' : state),
+    (st =[ c1 ]=> st') <-> (st =[ c2 ]=> st').
+
+refl_cequiv
+sym_cequiv
+trans_cequiv
+
+_congruence_ :=
+    That is, the equivalence of two subprograms implies the
+    equivalence of the larger programs in which they are embedded:
+
+              aequiv a1 a1'
+      -----------------------------
+      cequiv (x ::= a1) (x ::= a1')
+
+              cequiv c1 c1'
+              cequiv c2 c2'
+         --------------------------
+         cequiv (c1;;c2) (c1';;c2')
+
+
+R c1 c2
+  forall st1 st2 st', (st1 =[ c1 ]=> st') <-> (st2 =[ c2 ]=> st')
+
+refl: R c1 c1
+sym : R c1 c2 <-> R c2 c1
+trans : R c1 c2 -> R c2 c3 -> R c1 c3
 
     [] *)
 
@@ -1738,7 +1770,7 @@ Proof.
     }
     rewrite H0.
     apply E_Havoc.
-Qed. 
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, standard, optional (havoc_copy)  
@@ -1759,9 +1791,53 @@ Theorem ptwice_cequiv_pcopy :
   cequiv ptwice pcopy \/ ~cequiv ptwice pcopy.
 Proof.
   right.
-  unfold ptwice, pcopy, cequiv.
+  unfold ptwice, pcopy.
   intros H.
-Admitted.
+
+  remember (HAVOC X;; HAVOC Y)%imp as c1.
+  remember (HAVOC X;; Y ::= X)%imp as c2.
+  remember (Y !-> 2 ; X !-> 1) as st1.
+  assert (H1: empty_st =[ c1 ]=> st1).
+  {
+    subst.
+    apply E_Seq with (st' := (X !-> 1)); apply E_Havoc.
+  }
+
+  apply H in H1.
+  subst.
+
+  inversion H1; subst.
+  inversion H3; subst.
+  inversion H6; subst.
+  (* unfold t_update in H8. *)
+  simpl in H7.
+
+  remember (Y !-> (X !-> n) X; X !-> n) as st.
+  remember (Y !-> 2; X !-> 1) as st'.
+
+  assert (Hy2 : st Y = 2).
+  {
+    rewrite H7.
+    subst. reflexivity.
+  }
+
+  assert (Hy1 : st Y = 1).
+  {
+    assert (Hyn : st Y = n) by (subst; reflexivity).
+    assert (Hn1 : n = 1).
+    {
+      assert (Hxn : st X = n) by (subst; reflexivity).
+      assert (Hx1 : st X = 1) by (rewrite H7; subst; reflexivity).
+      rewrite <- Hxn.
+      apply Hx1.
+    }
+    rewrite <- Hn1.
+    apply Hyn.
+  }
+
+  rewrite Hy2 in Hy1.
+  inversion Hy1.
+Qed.
 (** [] *)
 
 (** The definition of program equivalence we are using here has some
@@ -1797,12 +1873,50 @@ Definition p2 : com :=
 
 Lemma p1_may_diverge : forall st st', st X <> 0 ->
   ~ st =[ p1 ]=> st'.
-Proof. (* FILL IN HERE *) Admitted.
+Proof.
+  unfold p1.
+  intros st st' Hst contra.
+  remember (WHILE ~ X = 0 DO HAVOC Y;; X ::= X + 1 END)%imp as loopdef
+    eqn:Heqloopdef.
+  induction contra; try discriminate Heqloopdef.
+  - inversion Heqloopdef; subst.
+    simpl in H.
+    rewrite negb_false_iff in H.
+    rewrite eqb_eq in H.
+    apply Hst.
+    apply H.
+  - inversion Heqloopdef; subst.
+    clear Heqloopdef.
+    apply IHcontra2; try reflexivity.
+    inversion contra1; subst.
+    inversion H2; subst.
+    inversion H5; subst.
+    unfold t_update.
+    simpl.
+    omega.
+Qed.
 
 Lemma p2_may_diverge : forall st st', st X <> 0 ->
   ~ st =[ p2 ]=> st'.
 Proof.
-(* FILL IN HERE *) Admitted.
+  unfold p2.
+  intros st st' Hst contra.
+  remember (WHILE ~ X = 0 DO SKIP END)%imp as loopdef
+    eqn:Heqloopdef.
+  induction contra; try discriminate Heqloopdef.
+  - inversion Heqloopdef; subst.
+    simpl in H.
+    rewrite negb_false_iff in H.
+    rewrite eqb_eq in H.
+    apply Hst.
+    apply H.
+  - inversion Heqloopdef; subst.
+    clear Heqloopdef.
+    apply IHcontra2; try reflexivity.
+    inversion contra1; subst.
+    assumption.
+Qed.
+
 (** [] *)
 
 (** **** Exercise: 4 stars, advanced (p1_p2_equiv)  
@@ -1811,7 +1925,44 @@ Proof.
     equivalent. *)
 
 Theorem p1_p2_equiv : cequiv p1 p2.
-Proof. (* FILL IN HERE *) Admitted.
+Proof.
+  unfold p1, p2.
+  split; intros H.
+  - destruct (st X =? 0) eqn:HE.
+    + apply eqb_eq in HE.
+      inversion H; subst.
+      * apply E_WhileFalse.
+        assumption.
+      * simpl in H2.
+        apply negb_true_iff in H2.
+        apply eqb_neq in H2.
+        contradiction.
+    + apply eqb_neq in HE.
+      inversion H; subst.
+      * simpl in H4.
+        apply negb_false_iff in H4.
+        apply eqb_eq in H4.
+        contradiction.
+      * exfalso.
+        apply (p1_may_diverge st st'); assumption.
+  - destruct (st X =? 0) eqn:HE.
+    + apply eqb_eq in HE.
+      inversion H; subst.
+      * apply E_WhileFalse.
+        assumption.
+      * simpl in H2.
+        apply negb_true_iff in H2.
+        apply eqb_neq in H2.
+        contradiction.
+    + apply eqb_neq in HE.
+      inversion H; subst.
+      * simpl in H4.
+        apply negb_false_iff in H4.
+        apply eqb_eq in H4.
+        contradiction.
+      * exfalso.
+        apply (p2_may_diverge st st'); assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, advanced (p3_p4_inequiv)  

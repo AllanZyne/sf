@@ -191,9 +191,17 @@ Theorem H_Pre_False_deriv:
 Proof.
   intros c.
   induction c; intro Q.
-  - (* SKIP *) pre_false_helper H_Skip.
-  - (* ::= *) pre_false_helper H_Asgn.
-  - (* ;; *) pre_false_helper H_Seq. apply IHc1. apply IHc2.
+  - (* SKIP *)
+    (* eapply H_Consequence_pre. eapply H_Skip. intros st CONTRA. destruct CONTRA. *)
+    pre_false_helper H_Skip.
+  - (* ::= *)
+    (* eapply H_Consequence_pre. eapply H_Asgn. intros st CONTRA. destruct CONTRA. *)
+    pre_false_helper H_Asgn.
+  - (* ;; *)
+    (* eapply H_Consequence_pre. eapply H_Seq. *)
+    (* apply IHc1. apply IHc2. *)
+    (* intros st CONTRA. destruct CONTRA. *)
+    pre_false_helper H_Seq. apply IHc1. apply IHc2.
   - (* TEST *)
     apply H_If; eapply H_Consequence_pre.
     apply IHc1. intro. eapply False_and_P_imp.
@@ -230,14 +238,21 @@ Definition wp (c:com) (Q:Assertion) : Assertion :=
 
 Lemma wp_is_precondition: forall c Q,
   {{wp c Q}} c {{Q}}.
-(* FILL IN HERE *) Admitted.
+Proof.
+  intros c Q st st' E H.
+  apply H.
+  assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard (wp_is_weakest)  *)
 
 Lemma wp_is_weakest: forall c Q P',
    {{P'}} c {{Q}} -> forall st, P' st -> wp c Q st.
-(* FILL IN HERE *) Admitted.
+Proof.
+  intros c Q P' Hhoare st HP' st' Hc.
+  apply (Hhoare st st'); assumption.
+Qed.
 
 (** The following utility lemma will also be useful. *)
 
@@ -260,7 +275,7 @@ Proof.
   induction c; intros P Q HT.
   - (* SKIP *)
     eapply H_Consequence.
-     eapply H_Skip.
+      eapply H_Skip.
       intros.  eassumption.
       intro st. apply HT.  apply E_Skip.
   - (* ::= *)
@@ -274,7 +289,40 @@ Proof.
        intros st st' E1 H. unfold wp. intros st'' E2.
          eapply HT. econstructor; eassumption. assumption.
      eapply IHc2. intros st st' E1 H. apply H; assumption.
-  (* FILL IN HERE *) Admitted.
+  - (* If *)
+    apply H_If.
+    (* ct *)
+    apply IHc1.
+    intros st st' E [HP Hb].
+    eapply HT.
+    eapply E_IfTrue; eassumption.
+    assumption.
+    (* cf *)
+    apply IHc2.
+    intros st st' E [HP Hb].
+    eapply HT.
+    apply bassn_eval_false in Hb.
+    eapply E_IfFalse; eassumption.
+    assumption.
+  - (* While *)
+    eapply H_Consequence.
+    apply (H_While (wp (WHILE b DO c END) Q)).
+    + (* Loop *)
+      apply IHc.
+      intros st st' E1 [HP Hb] st'' E2.
+      eapply HT.
+      eapply E_WhileTrue; try eassumption.
+      admit.
+    + (* P ->> wp Q *)
+      apply wp_is_weakest. assumption.
+    + (* End *)
+      intros st [Hwp Hb].
+      eapply HT.
+      apply bassn_eval_false in Hb.
+      eapply E_WhileFalse; try eassumption.
+      unfold wp in Hwp.
+      admit.
+(* FILL IN HERE *) Admitted.
 (** [] *)
 
 (** Finally, we might hope that our axiomatic Hoare logic is
