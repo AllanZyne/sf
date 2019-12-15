@@ -625,7 +625,15 @@ Inductive step : tm -> tm -> Prop :=
 Lemma value_not_same_as_normal_form :
   exists v, value v /\ ~ normal_form step v.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists (P (C 0) (C 0)).
+  split.
+  - constructor.
+  - unfold normal_form.
+    intros contra.
+    apply contra.
+    exists (C 0).
+    constructor.
+Qed.
 End Temp1.
 
 (** [] *)
@@ -660,7 +668,14 @@ Inductive step : tm -> tm -> Prop :=
 Lemma value_not_same_as_normal_form :
   exists v, value v /\ ~ normal_form step v.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists (C 0).
+  split.
+  - constructor.
+  - intros contra.
+    apply contra.
+    exists (P (C 0) (C 0)).
+    constructor.
+Qed.
 
 End Temp2.
 (** [] *)
@@ -695,7 +710,15 @@ Inductive step : tm -> tm -> Prop :=
 Lemma value_not_same_as_normal_form :
   exists t, ~ value t /\ normal_form step t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists (P (C 0) (P (C 0) (C 0))).
+  split.
+  - intros contra.
+    inversion contra.
+  - intros H.
+    inversion H.
+    inversion H0; subst.
+    inversion H4.
+Qed.
 
 End Temp3.
 (** [] *)
@@ -740,7 +763,7 @@ Inductive step : tm -> tm -> Prop :=
 Definition bool_step_prop1 :=
   fls --> fls.
 
-(* FILL IN HERE *)
+(* not provable *)
 
 Definition bool_step_prop2 :=
      test
@@ -750,7 +773,7 @@ Definition bool_step_prop2 :=
   -->
      tru.
 
-(* FILL IN HERE *)
+(* not *)
 
 Definition bool_step_prop3 :=
      test
@@ -763,7 +786,11 @@ Definition bool_step_prop3 :=
        (test tru tru tru)
        fls.
 
-(* FILL IN HERE *)
+Theorem bool_step_prop3_holds : bool_step_prop3.
+Proof.
+  apply ST_If.
+  apply ST_IfTrue.
+Qed.
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_smallstep_bools : option (nat*string) := None.
@@ -777,14 +804,37 @@ Definition manual_grade_for_smallstep_bools : option (nat*string) := None.
 Theorem strong_progress : forall t,
   value t \/ (exists t', t --> t').
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction t.
+  - (* tru *)
+    left. constructor.
+  - (* fls *)
+    left. constructor.
+  - (* test *)
+    right.
+    inversion IHt1; inversion H; subst.
+    + exists t2. apply ST_IfTrue.
+    + exists t3. apply ST_IfFalse.
+    + exists (test x t2 t3).
+      apply ST_If.
+      apply H0.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (step_deterministic)  *)
 Theorem step_deterministic :
   deterministic step.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold deterministic.
+  intros x y1 y2 Hs1 Hs2.
+  generalize dependent y2.
+  induction Hs1;
+    intros y2 Hs2; inversion Hs2; subst; try solve_by_invert.
+  - reflexivity.
+  - reflexivity.
+  - rewrite (IHHs1 t1'0).
+    reflexivity.
+    assumption.
+Qed.
 (** [] *)
 
 Module Temp5.
@@ -820,7 +870,9 @@ Inductive step : tm -> tm -> Prop :=
   | ST_If : forall t1 t1' t2 t3,
       t1 --> t1' ->
       test t1 t2 t3 --> test t1' t2 t3
-  (* FILL IN HERE *)
+  | ST_ShortCircuit : forall t1 t2,
+      value t2 ->
+      test t1 t2 t2 --> t2
 
   where " t '-->' t' " := (step t t').
 
@@ -835,7 +887,9 @@ Definition bool_step_prop4 :=
 Example bool_step_prop4_holds :
   bool_step_prop4.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply ST_ShortCircuit.
+  constructor.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, optional (properties_of_altered_step)  
@@ -850,20 +904,58 @@ Proof.
 
       Optional: prove your answer correct in Coq. *)
 
-(* FILL IN HERE 
+(* no *)
+Theorem step_not_deterministic :
+  ~ deterministic step.
+Proof.
+  unfold deterministic.
+  intros contra.
+  assert (Hs1: test (test tru tru tru) tru tru --> test tru tru tru).
+  {
+    apply ST_If.
+    apply ST_IfTrue.
+  }
+  assert (Hs2: test (test tru tru tru) tru tru --> tru).
+  {
+    apply ST_ShortCircuit.
+    apply v_tru.
+  }
+  apply (contra _ _ _ Hs1) in Hs2.
+  inversion Hs2.
+Qed.
+
+(*
    - Does a strong progress theorem hold? Write yes or no and
      briefly (1 sentence) explain your answer.
 
      Optional: prove your answer correct in Coq.
 *)
 
-(* FILL IN HERE 
+(* yes *)
+Theorem strong_progress : forall t,
+  value t \/ (exists t', t --> t').
+Proof.
+  induction t.
+  - left. constructor.
+  - left. constructor.
+  - right.
+    inversion IHt1.
+    + inversion H; subst.
+        exists t2. constructor.
+        exists t3. constructor.
+    + inversion H; subst.
+      exists (test x t2 t3).
+      apply ST_If.
+      assumption.
+Qed.
+
+(*
    - In general, is there any way we could cause strong progress to
      fail if we took away one or more constructors from the original
      step relation? Write yes or no and briefly (1 sentence) explain
      your answer.
 
-(* FILL IN HERE *)
+(* yes, remove ST_If *)
 
     [] *)
 
@@ -951,7 +1043,7 @@ Qed.
 
 Theorem multi_trans :
   forall (X : Type) (R : relation X) (x y z : X),
-      multi R x y  ->
+      multi R x y ->
       multi R y z ->
       multi R x z.
 Proof.
@@ -1011,7 +1103,8 @@ Qed.
 Lemma test_multistep_2:
   C 3 -->* C 3.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply multi_refl.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (test_multistep_3)  *)
@@ -1020,7 +1113,8 @@ Lemma test_multistep_3:
    -->*
       P (C 0) (C 3).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply multi_refl.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (test_multistep_4)  *)
@@ -1035,7 +1129,19 @@ Lemma test_multistep_4:
         (C 0)
         (C (2 + (0 + 3))).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  eapply multi_step.
+  {
+    apply ST_Plus2. apply v_const.
+    apply ST_Plus2. apply v_const.
+    apply ST_PlusConstConst.
+  }
+  eapply multi_step.
+  {
+    apply ST_Plus2. apply v_const.
+    apply ST_PlusConstConst.
+  }
+  apply multi_refl.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -1062,11 +1168,25 @@ Theorem normal_forms_unique:
 Proof.
   (* We recommend using this initial setup as-is! *)
   unfold deterministic. unfold normal_form_of.
-  intros x y1 y2 P1 P2.
+  intros x z1 z2 P1 P2.
   inversion P1 as [P11 P12]; clear P1.
   inversion P2 as [P21 P22]; clear P2.
-  generalize dependent y2.
-  (* FILL IN HERE *) Admitted.
+  generalize dependent z2.
+  induction P11;
+    intros z2 P21 P22.
+  - inversion P21; subst.
+    + reflexivity.
+    + exfalso. apply P12. exists y. apply H.
+  - inversion P21; subst.
+    + exfalso. apply P22. exists y. apply H.
+    + assert (Heq : y = y0).
+      {
+        eapply step_deterministic.
+        apply H. apply H0.
+      }
+      subst y0.
+      apply IHP11; assumption.
+Qed.
 (** [] *)
 
 (** Indeed, something stronger is true for this language (though not
@@ -1104,7 +1224,13 @@ Lemma multistep_congr_2 : forall t1 t2 t2',
      t2 -->* t2' ->
      P t1 t2 -->* P t1 t2'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros t1 t2 t2' Hv H.
+  induction H.
+  - apply multi_refl.
+  - eapply multi_step.
+      eapply ST_Plus2. apply Hv. apply H.
+      apply IHmulti.
+Qed.
 (** [] *)
 
 (** With these lemmas in hand, the main proof is a straightforward
@@ -1213,7 +1339,17 @@ Theorem eval__multistep : forall t n,
     includes [-->]. *)
 
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros t n Heval.
+  induction Heval.
+  - (* E_Const *)
+    apply multi_refl.
+  - (* E_Plus *)
+    apply multi_trans with (P (C n1) t2).
+    + apply multistep_congr_1. apply IHHeval1.
+    + apply multi_trans with (P (C n1) (C n2)).
+        apply multistep_congr_2. apply v_const. apply IHHeval2.
+        apply multi_R. { apply ST_PlusConstConst. }
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (eval__multistep_inf)  
@@ -1237,7 +1373,20 @@ Lemma step__eval : forall t t' n,
      t  ==> n.
 Proof.
   intros t t' n Hs. generalize dependent n.
-  (* FILL IN HERE *) Admitted.
+
+  induction Hs;
+    intros n He; inversion He; subst; clear He.
+  - (* ST_PlusConstConst *)
+    apply E_Plus; apply E_Const.
+  - (* ST_Plus1 *)
+    apply E_Plus.
+      apply IHHs. apply H1.
+      apply H3.
+  - (* ST_Plus2 *)
+    apply E_Plus.
+      apply H2.
+      apply IHHs. apply H4.
+Qed.
 (** [] *)
 
 (** The fact that small-step reduction implies big-step evaluation is
@@ -1253,7 +1402,21 @@ Proof.
 Theorem multistep__eval : forall t t',
   normal_form_of t t' -> exists n, t' = C n /\ t ==> n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros t t' [Hs Hnf].
+  induction Hs.
+  - apply nf_is_value in Hnf.
+    inversion Hnf.
+    exists n.
+    split.
+      reflexivity.
+      apply E_Const.
+  - apply IHHs in Hnf.
+    destruct Hnf as [n [Heq Heval]].
+    exists n.
+    split.
+    + assumption.
+    + apply step__eval with y; assumption.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -1270,7 +1433,27 @@ Proof.
 Theorem evalF_eval : forall t n,
   evalF t = n <-> t ==> n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  split.
+  - generalize dependent n.
+    induction t; intros n' H.
+    + simpl in H.
+      rewrite H.
+      constructor.
+    + simpl in H.
+      rewrite <- H.
+      apply E_Plus.
+      * apply IHt1.
+        reflexivity.
+      * apply IHt2.
+        reflexivity.
+  - intros H.
+    induction H.
+    + reflexivity.
+    + simpl.
+      rewrite IHeval1.
+      rewrite IHeval2.
+      reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, standard (combined_properties)  
@@ -1651,7 +1834,28 @@ Lemma par_body_n__Sn : forall n st,
   st X = n /\ st Y = 0 ->
   par_loop / st -->* par_loop / (X !-> S n ; st).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n st [Hst1 Hst2].
+  unfold par_loop.
+
+  eapply multi_step. apply CS_Par2. apply CS_While.
+  eapply multi_step. apply CS_Par2. apply CS_IfStep.
+    apply BS_Eq1. apply AS_Id.
+  eapply multi_step. apply CS_Par2. apply CS_IfStep.
+    apply BS_Eq. rewrite Hst2. simpl.
+  eapply multi_step. apply CS_Par2. apply CS_IfTrue.
+  eapply multi_step. apply CS_Par2. apply CS_SeqStep.
+    apply CS_AssStep. apply AS_Plus1. apply AS_Id.
+  eapply multi_step. apply CS_Par2. apply CS_SeqStep.
+    apply CS_AssStep. apply AS_Plus.
+  eapply multi_step. apply CS_Par2. apply CS_SeqStep.
+    apply CS_Ass.
+  eapply multi_step. apply CS_Par2. apply CS_SeqFinish.
+
+  rewrite Hst1.
+  assert (n + 1 = S n) by omega.
+  rewrite H.
+  apply multi_refl.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, optional (par_body_n)  *)
@@ -1660,7 +1864,33 @@ Lemma par_body_n : forall n st,
   exists st',
     par_loop / st -->*  par_loop / st' /\ st' X = n /\ st' Y = 0.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction n.
+  - intros st [Hst1 Hst2].
+    exists st.
+    split.
+      apply multi_refl.
+      split; assumption.
+  - intros st H.
+    apply (IHn st) in H.
+    destruct H as [st' [H Hst]].
+    assert (par_loop / st' -->* par_loop / (X !-> S n ; st')).
+    {
+      apply par_body_n__Sn.
+      apply Hst.
+    }
+    remember (X !-> S n; st') as st''.
+    exists st''.
+    split.
+    + eapply multi_trans.
+      apply H. apply H0.
+    + subst st''.
+      split.
+      * reflexivity.
+      * unfold t_update.
+        simpl.
+        destruct Hst as [Hst1 Hst2].
+        apply Hst2.
+Qed.
 (** [] *)
 
 (** ... the above loop can exit with [X] having any value
