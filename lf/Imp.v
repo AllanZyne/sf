@@ -1870,15 +1870,13 @@ Inductive sinstr : Type :=
     immaterial what we do, since our compiler will never emit such a
     malformed program. *)
 
-Definition s_func (st : state) (stack : list nat) (prog : list sinstr)
-  (op : nat -> nat -> nat) 
-  (exe : state -> list nat -> list sinstr -> list nat) :=
+Definition s_arith (op : nat -> nat -> nat) (stack : list nat) : list nat :=
   match stack with
   | nil => []
   | n1 :: t1 => match t1 with
-                | nil => []
-                | n2 :: t2 => exe st ((op n2 n1)::t2) prog
-                end
+    | nil => []
+    | n2 :: t2 => (op n2 n1) :: t2
+    end
   end.
 
 Fixpoint s_execute (st : state) (stack : list nat)
@@ -1886,12 +1884,12 @@ Fixpoint s_execute (st : state) (stack : list nat)
                  : list nat :=
   match prog with
   | nil => stack
-  | h :: t => match h with
-    | SPush n => s_execute st (n::stack) t
-    | SLoad x => s_execute st ((st x)::stack) t
-    | SPlus => s_func st stack t plus s_execute
-    | SMinus => s_func st stack t minus s_execute
-    | SMult => s_func st stack t mult s_execute
+  | instr :: progs => match instr with
+    | SPush n => s_execute st (n::stack) progs
+    | SLoad x => s_execute st ((st x)::stack) progs
+    | SPlus   => s_execute st (s_arith plus  stack) progs
+    | SMinus  => s_execute st (s_arith minus stack) progs
+    | SMult   => s_execute st (s_arith mult  stack) progs
     end
   end.
 
@@ -1900,7 +1898,7 @@ Example s_execute1 :
      s_execute empty_st []
        [SPush 5; SPush 3; SPush 1; SMinus]
    = [2; 5].
-Proof. reflexivity. Qed.
+Proof. simpl. reflexivity. Qed.
 
 Example s_execute2 :
      s_execute (X !-> 3) [3;4]
@@ -1911,14 +1909,14 @@ Proof. simpl. reflexivity. Qed.
 (** Next, write a function that compiles an [aexp] into a stack
     machine program. The effect of running the program should be the
     same as pushing the value of the expression on the stack. *)
- 
+
 Fixpoint s_compile (e : aexp) : list sinstr :=
   match e with
-  | ANum n => [SPush n]
-  | AId x => [SLoad x]
-  | APlus a1 a2 => s_compile a1 ++ s_compile a2 ++ [SPlus]
+  | ANum   n     => [SPush n]
+  | AId    x     => [SLoad x]
+  | APlus  a1 a2 => s_compile a1 ++ s_compile a2 ++ [SPlus]
   | AMinus a1 a2 => s_compile a1 ++ s_compile a2 ++ [SMinus]
-  | AMult a1 a2 => s_compile a1 ++ s_compile a2 ++ [SMult]
+  | AMult  a1 a2 => s_compile a1 ++ s_compile a2 ++ [SMult]
   end.
 
 (** After you've defined [s_compile], prove the following to test
@@ -1944,15 +1942,44 @@ Proof.
     more general lemma to get a usable induction hypothesis; the main
     theorem will then be a simple corollary of this lemma. *)
 
+Lemma s_execute_app : forall st stack p1 p2,
+    s_execute st stack (p1 ++ p2)
+  = s_execute st (s_execute st stack p1) p2.
+Proof.
+  intros st stack p1 p2.
+  generalize dependent stack.
+  induction p1.
+  - reflexivity.
+  - intros stack.
+    rewrite <- app_comm_cons.
+    induction a; simpl;
+      rewrite IHp1;
+      reflexivity.
+Qed.
+
+Lemma s_compile_correct' : forall (st : state) (e : aexp) (stack : list nat),
+  s_execute st stack (s_compile e) = aeval st e :: stack.
+Proof.
+  intros st e.
+  induction e;
+    intros stack; simpl;
+    (* ANum AId *)
+    try reflexivity;
+    (* APlus AMinus AMult *)
+    try (rewrite s_execute_app;
+    rewrite IHe1;
+    rewrite s_execute_app;
+    rewrite IHe2;
+    simpl;
+    reflexivity).
+Qed.
+
 Theorem s_compile_correct : forall (st : state) (e : aexp),
   s_execute st [] (s_compile e) = [ aeval st e ].
 Proof.
   intros.
-  induction e; simpl.
-  - reflexivity.
-  - reflexivity.
-  - unfold s_execute.
-  (* FILL IN HERE *) Admitted.
+  apply s_compile_correct'.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, optional (short_circuit)  
