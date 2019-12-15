@@ -1964,11 +1964,28 @@ Definition stack_multistep st := multi (stack_step st).
     the stack machine small step semantics and then prove it. *)
 
 Definition compiler_is_correct_statement : Prop
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+  := forall (st : state) (e : aexp) (p : prog) (stk : stack),
+    stack_multistep st (s_compile e ++ p, stk) (p, aeval st e :: stk).
 
 Theorem compiler_is_correct : compiler_is_correct_statement.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros st e.
+  induction e; simpl;
+    intros p stk;
+    (* ANum AId *)
+    try (eapply multi_step; constructor);
+    (* APlus AMinus AMult *)
+    try (repeat rewrite <- app_assoc;
+    eapply multi_trans;
+    try apply IHe1;
+    eapply multi_trans;
+    try apply IHe2;
+    rewrite <- app_comm_cons;
+    rewrite app_nil_l;
+    eapply multi_step;
+    constructor;
+    apply multi_refl).
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -2056,7 +2073,8 @@ Theorem normalize_ex : exists e',
   (P (C 3) (P (C 2) (C 1)))
   -->* e' /\ value e'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  eapply ex_intro. split. normalize. constructor.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (normalize_ex')  
@@ -2067,7 +2085,17 @@ Theorem normalize_ex' : exists e',
   (P (C 3) (P (C 2) (C 1)))
   -->* e' /\ value e'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists (C 6).
+  split.
+  apply multi_step with (P (C 3) (C 3)).
+    apply ST_Plus2.
+      apply v_const.
+      apply ST_PlusConstConst.
+  apply multi_step with (C 6).
+    apply ST_PlusConstConst.
+  apply multi_refl.
+  apply v_const.
+Qed.
 (** [] *)
 
 (* Thu Feb 7 20:09:24 EST 2019 *)
