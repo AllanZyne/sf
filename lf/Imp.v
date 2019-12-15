@@ -2135,6 +2135,7 @@ Inductive ceval : com -> state -> result -> state -> Prop :=
   | E_Break : forall st,
       st =[ CBreak ]=> st / SBreak
   | E_Ass : forall st x a n,
+      aeval st a = n ->
       st =[ x ::= a ]=> (x !-> n ; st) / SContinue
   | E_SeqBrk : forall c1 c2 st st',
       st  =[ c1 ]=> st' / SBreak ->
@@ -2202,38 +2203,26 @@ Qed.
 
 (** **** Exercise: 3 stars, advanced, optional (while_break_true)  *)
 
-(* Lemma xxx : forall b st st',
-  beval st b = true ->
-  ~(st =[ WHILE b DO SKIP END]=> st' / SContinue).
-Proof.
-  intros b st st' H contra.
-  
-  remember (WHILE b DO SKIP END)%imp as loopdef
-           eqn:Heqloopdef.
-
-  induction contra; try discriminate.
-  - rewrite H3 in H.
-    inversion H.
-  - inversion H4.
-  - inversion H3; subst. *)
-    
-
 Theorem while_break_true : forall b c st st',
   st =[ WHILE b DO c END ]=> st' / SContinue ->
   beval st' b = true ->
   exists st'', st'' =[ c ]=> st' / SBreak.
 Proof.
-  intros b c st st'' H Hbeval.
-  inversion H.
+  intros b c st st' H Hb.
+  remember (WHILE b DO c END) as cw eqn: Heqncw.
+  induction H;
+    inversion Heqncw; subst; clear Heqncw.
   - (* E_WhileFalse *)
-    rewrite H3 in Hbeval.
-    discriminate Hbeval.
+    rewrite H in Hb.
+    discriminate Hb.
   - (* E_WhileTrueBrk *)
     exists st.
-    apply H4.
+    apply H0.
   - (* E_WhileTrueCnt *)
-
-(* FILL IN HERE *) Admitted.
+    apply IHceval2.
+    reflexivity.
+    exact Hb.
+Qed.
 (** [] *)
 
 (** **** Exercise: 4 stars, advanced, optional (ceval_deterministic)  *)
@@ -2242,7 +2231,58 @@ Theorem ceval_deterministic: forall (c:com) st st1 st2 s1 s2,
      st =[ c ]=> st2 / s2 ->
      st1 = st2 /\ s1 = s2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  generalize dependent st2.
+  generalize dependent s2.
+  induction H;
+    intros s2 st2 H'; inversion H'; subst.
+  - (* E_Skip *) split; reflexivity.
+  - (* E_Break *) split; reflexivity.
+  - (* E_Ass *) split; reflexivity.
+  (* E_SeqBrk *)
+  - apply IHceval. assumption.
+  - apply IHceval in H2.
+    destruct H2 as [_ contra].
+    discriminate.
+  (* E_SeqCon *)
+  - apply IHceval1 in H6.
+    destruct H6 as [_ contra].
+    discriminate.
+  - apply IHceval1 in H3.
+    destruct H3.
+    subst st'0.
+    apply IHceval2.
+    assumption.
+  (* E_IfTrue *)
+  - apply IHceval in H8. exact H8.
+  - rewrite H in H7. discriminate.
+  (* E_IfFalse *)
+  - rewrite H in H7. discriminate.
+  - apply IHceval in H8. exact H8.
+  (* E_WhileFalse *)
+  - split; reflexivity.
+  - rewrite H in H2. discriminate.
+  - rewrite H in H2. discriminate.
+  (* E_WhileTrueBrk *)
+  - rewrite H in H6. discriminate.
+  - apply IHceval in H7.
+    destruct H7.
+    subst st'.
+    split; reflexivity.
+  - apply IHceval in H4.
+    destruct H4.
+    discriminate.
+  (* E_WhileTrueCnt *)
+  - rewrite H in H7. discriminate.
+  - apply IHceval1 in H8.
+    destruct H8.
+    discriminate.
+  - apply IHceval1 in H5.
+    destruct H5.
+    subst st'0.
+    apply IHceval2 in H9.
+    exact H9.
+Qed.
 
 (** [] *)
 End BreakImp.
