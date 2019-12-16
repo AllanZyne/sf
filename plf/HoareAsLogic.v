@@ -306,23 +306,23 @@ Proof.
     assumption.
   - (* While *)
     eapply H_Consequence.
-    apply (H_While (wp (WHILE b DO c END) Q)).
+    apply (H_While (wp (WHILE b DO c END)%imp Q)).
     + (* Loop *)
       apply IHc.
       intros st st' E1 [HP Hb] st'' E2.
-      eapply HT.
-      eapply E_WhileTrue; try eassumption.
-      admit.
+      unfold wp in HP.
+      apply HP.
+      eapply E_WhileTrue; eassumption.
     + (* P ->> wp Q *)
-      apply wp_is_weakest. assumption.
+      apply wp_is_weakest.
+      assumption.
     + (* End *)
       intros st [Hwp Hb].
-      eapply HT.
-      apply bassn_eval_false in Hb.
+      apply Hwp.
       eapply E_WhileFalse; try eassumption.
-      unfold wp in Hwp.
-      admit.
-(* FILL IN HERE *) Admitted.
+      apply bassn_eval_false in Hb.
+      assumption.
+Qed.
 (** [] *)
 
 (** Finally, we might hope that our axiomatic Hoare logic is
