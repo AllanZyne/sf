@@ -1204,6 +1204,11 @@ Proof. reflexivity. Qed.
 (** Addition of two natural numbers: *)
 Definition plus (n m : cnat) : cnat :=
   fun (X : Type) (f : X -> X) (x : X) => m X f (n X f x).
+(* plus := n cnat succ m.
+==>
+The term "cnat" has type "Type@{cnat.u0+1}" while it is expected to have type
+ "Type@{cnat.u0}" (universe inconsistency).
+ *)
 
 Example plus_1 : plus zero one = one.
 Proof. reflexivity. Qed.
@@ -1251,16 +1256,16 @@ Check (mult one).
 
 Definition exp (n m : cnat) : cnat :=
   fun (X : Type) (f : X -> X) (x : X) =>
-    m X (n X (n X f)) x.
+    m (X->X) (fun f' => n X f') (one X f) x.
 
 Example exp_1 : exp two two = plus two two.
-Proof. simpl. (* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 
 Example exp_2 : exp three zero = one.
-Proof. (* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 
 Example exp_3 : exp three two = plus (mult two (mult two two)) one.
-Proof. (* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 
 (** [] *)
 
