@@ -369,7 +369,13 @@ Proof.
   - exfalso. 
     apply WHILE_true_nonterm in H; assumption.
   - exfalso.
-    apply WHILE_true_nonterm in H. (* (?) IH: a->b->c  H:b  apply IH in b*)
+    apply WHILE_true_nonterm in H.
+    (* IH: a->b->c
+       H:b
+       apply IH in b.
+    ==>
+       IH: c
+       +goal: a*)
       assumption. 
       unfold bequiv. intros. simpl. reflexivity. 
 Qed.
@@ -827,7 +833,7 @@ Qed.
     a congruence on commands.  Can you think of a relation on commands
     that is an equivalence but _not_ a congruence? *)
 
-(* FILL IN HERE (?)
+(*
 
 _equivalence_ :=
 
@@ -854,11 +860,17 @@ _congruence_ :=
 
 
 R c1 c2
-  forall st1 st2 st', (st1 =[ c1 ]=> st') <-> (st2 =[ c2 ]=> st')
+  exists st st', (st =[ c1 ]=> st') <-> (st =[ c2 ]=> st')
 
 refl: R c1 c1
 sym : R c1 c2 <-> R c2 c1
 trans : R c1 c2 -> R c2 c3 -> R c1 c3
+
+cong:
+R c1 c1'
+R c2 c2'
+--------- (Wrong!)
+R (c1;;c2) (c1';;c2')
 
     [] *)
 

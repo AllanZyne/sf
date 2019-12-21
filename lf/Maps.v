@@ -71,7 +71,7 @@ Theorem eqb_string_refl : forall s : string, true = eqb_string s s.
 Proof. intros s. unfold eqb_string. destruct (string_dec s s) as [|Hs].
   - reflexivity.
   - destruct Hs. reflexivity.
-Qed. (* TODO *)
+Qed.
 
 (** The following useful property follows from an analogous
     lemma about strings: *)
@@ -86,7 +86,7 @@ Proof.
    - split.
      + intros contra. discriminate contra.
      + intros H. rewrite H in Hs. destruct Hs. reflexivity.
-Qed. (* TODO *)
+Qed.
 
 (** Similarly: *)
 

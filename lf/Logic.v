@@ -414,15 +414,15 @@ Proof.
 Fact not_implies_our_not : forall (P:Prop),
   ~ P -> (forall (Q:Prop), P -> Q).
 Proof.
-(* intros P HNP Q HP.
-  destruct HNP. (* (?) *)
-  apply HP.
-Qed. *)
   intros P HNP Q HP.
-  (* unfold not in HNP. *)
-  apply HNP in HP.
-  destruct HP.
+  destruct HNP. (* destruct not *)
+  apply HP.
 Qed.
+(*   intros P HNP Q HP. *)
+(*   (* unfold not in HNP. *) *)
+(*   apply HNP in HP. *)
+(*   destruct HP. *)
+(* Qed. *)
 (** [] *)
 
 (** Inequality is a frequent enough example of negated statement
@@ -763,9 +763,8 @@ Theorem dist_not_exists : forall (X:Type) (P : X -> Prop),
 Proof.
   intros X P H H'.
   destruct H' as [x HNP].
-  assert (HP: P x). { apply H. } (* (?) simplify *)
-  apply HNP in HP.
-  apply HP.
+  apply HNP.
+  apply H.
 Qed.
 (** [] *)
 
@@ -1470,7 +1469,7 @@ Fail Definition is_even_prime n :=
     _computational_ nature of Coq's core language, which is designed
     so that every function that it can express is computable and
     total.  One reason for this is to allow the extraction of
-    executable programs from Coq developments. (?) As a consequence,
+    executable programs from Coq developments. As a consequence,
     [Prop] in Coq does _not_ have a universal case analysis operation
     telling whether any given proposition is true or false, since such
     an operation would allow us to write non-computable functions.
@@ -1830,7 +1829,7 @@ Qed.
 (** It may seem strange that the general excluded middle is not
     available by default in Coq; after all, any given claim must be
     either true or false.  Nonetheless, there is an advantage in not
-    assuming the excluded middle:(?) statements in Coq can make stronger
+    assuming the excluded middle: statements in Coq can make stronger
     claims than the analogous statements in standard mathematics.
     Notably, if there is a Coq proof of [exists x, P x], it is
     possible to explicitly exhibit a value of [x] for which we can

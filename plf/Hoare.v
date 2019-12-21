@@ -1577,7 +1577,7 @@ Proof.
     terminate (without proving that they do) are often said to
     describe a logic of "partial" correctness.  It is also possible to
     give Hoare rules for "total" correctness, which build in the fact
-    that the commands terminate.(?) However, in this course we will only
+    that the commands terminate. However, in this course we will only
     talk about partial correctness. *)
 
 (* ----------------------------------------------------------------- *)

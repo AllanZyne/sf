@@ -75,7 +75,7 @@ Theorem silly_ex :
      evenb 4 = true.
 Proof.
   intros H1 H2.
-  apply H2. (* (?) *)
+  reflexivity.
 Qed.
 (** [] *)
 
@@ -261,7 +261,7 @@ Theorem injection_ex1 : forall (n m o : nat),
 Proof.
   intros n m o H.
   injection H. intros H1 H2.
-  rewrite H1. rewrite H2. (*(?)apply H2.*) reflexivity.
+  rewrite H1. rewrite H2. reflexivity.
 Qed.
 
 (** The "[as]" variant of [injection] permits us to choose names for

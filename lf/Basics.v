@@ -1341,19 +1341,17 @@ Fixpoint plus' (n : nat) (m : nat) : nat :=
     out your solution so that it doesn't cause Coq to reject the whole
     file!) *)
 
-(* (?)
-Fixpoint fixtest (n : nat) : bool :=
-  match (evenb n) with
-  | true => true
-  | false => fixtest (S n)
-  end.
+(* Fixpoint fixtest (n : nat) : bool := *)
+(*   match (evenb n) with *)
+(*   | true => true *)
+(*   | false => fixtest (S n) *)
+(*   end. *)
 
-Fixpoint alternate (l1 l2 : natlist) : natlist :=
-  match l1 with
-  | nil => l2
-  | h :: t => h :: (alternate l2 l1)
-  end.
-    [] *)
+(* Fixpoint alternate (l1 l2 : natlist) : natlist := *)
+(*   match l1 with *)
+(*   | nil => l2 *)
+(*   | h :: t => h :: (alternate l2 l1) *)
+(*   end. *)
 
 (* ################################################################# *)
 (** * More Exercises *)
