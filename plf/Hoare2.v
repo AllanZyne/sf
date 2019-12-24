@@ -1163,8 +1163,16 @@ Proof.
     unfold assn_sub, t_update.
     simpl.
     omega.
-  - 
-  (* FILL IN HERE *) Admitted.
+  - intros P' Hhoare st HP'.
+    assert (st =[ X ::= Y + 1]=> (X !-> st Y + 1; st)).
+    {
+      apply E_Ass. reflexivity.
+    }
+    apply (Hhoare _ _ H) in HP'.
+    unfold t_update in HP'.
+    simpl in HP'.
+    omega.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, advanced, optional (hoare_asgn_weakest)  
@@ -1179,11 +1187,17 @@ Proof.
   unfold is_wp.
   split.
   - apply hoare_asgn.
-  - 
-(* FILL IN HERE *) Admitted.
+  - intros P' H st HP'.
+    assert (st =[ X ::= a]=> (X !-> aeval st a;st)).
+    {
+      apply E_Ass. reflexivity.
+    }
+    apply (H _ _ H0) in HP'.
+    apply HP'.
+Qed.
 (** [] *)
 
-(** **** Exercise: 2 stars, advanced, optional (hoare_havoc_weakest)  
+(** **** Exercise: 2 stars, advanced, optional (hoare_havoc_weakest)
 
     Show that your [havoc_pre] rule from the [himp_hoare] exercise
     in the [Hoare] chapter returns the weakest precondition. *)
@@ -1194,7 +1208,13 @@ Lemma hoare_havoc_weakest : forall (P Q : Assertion) (X : string),
   {{ P }} HAVOC X {{ Q }} ->
   P ->> havoc_pre X Q.
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros P Q X H st HP.
+  unfold havoc_pre.
+  intros n.
+  unfold hoare_triple in H.
+  assert (st =[ HAVOC X ]=> (X !-> n; st)) by apply E_Havoc.
+  apply H in H0; assumption.
+Qed.
 End Himp2.
 (** [] *)
 
