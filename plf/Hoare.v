@@ -1959,12 +1959,17 @@ Notation "{{ P }}  c  {{ Q }}" := (hoare_triple P c Q)
     [havoc_pre] and prove that the resulting rule is correct. *)
 
 Definition havoc_pre (X : string) (Q : Assertion) : Assertion :=
-  fun st => Q (X !-> st X; st).
+  fun st => forall n, Q (X !-> n; st).
 
 Theorem hoare_havoc : forall (Q : Assertion) (X : string),
   {{ havoc_pre X Q }} HAVOC X {{ Q }}.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros Q X.
+  unfold havoc_pre.
+  intros st st' HE HQ.
+  inversion HE; subst.
+  apply HQ.
+Qed.
 
 End Himp.
 (** [] *)
@@ -2095,18 +2100,43 @@ Theorem assert_assume_differ : exists P b Q,
        ({{P}} ASSUME b {{Q}})
   /\ ~ ({{P}} ASSERT b {{Q}}).
 Proof.
-(* FILL IN HERE *) Admitted.
+  exists (fun st => True).
+  exists false.
+  exists (fun st => False).
+  split.
+  - intros st st' H Truth.
+    inversion H; subst.
+    inversion H1.
+  - intros contra.
+    destruct (contra empty_st RError).
+    + apply E_AssertFalse.
+      reflexivity.
+    + apply I.
+    + destruct H as [contra1 contra2].
+      discriminate contra1.
+Qed.
 
 Theorem assert_implies_assume : forall P b Q,
      ({{P}} ASSERT b {{Q}})
   -> ({{P}} ASSUME b {{Q}}).
 Proof.
-(* FILL IN HERE *) Admitted.
+  intros.
+  intros st st' HE HP.
+  inversion HE; subst.
+  destruct (H st (RNormal st)).
+  - apply E_AssertTrue.
+    apply H1.
+  - apply HP.
+  - inversion H0.
+    inversion H2; subst x.
+    exists st.
+    apply H0.
+Qed.
 
 (** Your task is now to state Hoare rules for [ASSERT] and [ASSUME],
     and use them to prove a simple program correct.  Name your hoare
     rule theorems [hoare_assert] and [hoare_assume].
-     
+
     For your benefit, we provide proofs for the old hoare rules
     adapted to the new semantics. *)
 
@@ -2164,7 +2194,28 @@ Qed.
 (** State and prove your hoare rules, [hoare_assert] and
     [hoare_assume], below. *)
 
-(* FILL IN HERE *)
+Theorem hoare_assert : forall P b,
+    {{fun st => P st /\ bassn b st}} ASSERT b {{P}}.
+Proof.
+  intros P b st st' HE [HP Hb].
+  inversion HE; subst.
+  - exists st. split.
+    reflexivity. assumption.
+  - unfold bassn in Hb.
+    rewrite  Hb in H0.
+    discriminate H0.
+Qed.
+
+Theorem hoare_assume : forall P b,
+    {{P}} ASSUME b {{fun st => P st /\ bassn b st}}.
+Proof.
+  intros P b st st' HE HP.
+  inversion HE; subst.
+  exists st.
+  split.
+    reflexivity.
+    split; assumption.
+Qed.
 
 (** Here are the other proof rules (sanity check) *)
 Theorem hoare_skip : forall P,
@@ -2228,7 +2279,23 @@ Example assert_assume_example:
   ASSERT (X = 2)
   {{fun st => True}}.
 Proof.
-(* FIL IN HERE *) Admitted.
+  apply hoare_seq with (fun st => True /\ st X = 1).
+  - eapply hoare_seq.
+    apply hoare_assert.
+    eapply hoare_consequence_pre.
+    apply hoare_asgn.
+    intros st [HT HX].
+    split.
+      assumption.
+      unfold bassn, t_update. simpl. rewrite HX. reflexivity.
+  - eapply hoare_consequence_post.
+    apply hoare_assume.
+    intros st [HT Hb].
+    unfold bassn in Hb.
+    simpl in Hb.
+    rewrite eqb_eq in Hb.
+    split; assumption.
+Qed.
 
 End HoareAssertAssume.
 (** [] *)
